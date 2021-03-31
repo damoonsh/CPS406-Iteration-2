@@ -1,4 +1,5 @@
 import pygame
+import consts
 
 class Point:
     """
@@ -13,42 +14,49 @@ class Point:
     def add_passer(self, passer):
         self.passer.append(passer)
 
-class PlayerPath:
-    pass
-
 class Player:
-    pass
+    def __init__(self):
+        self.points = []
 
-class Quark:
-    pass
+    def add_point(self, point: Point):
+        self.points.append(point)
 
 class Map:
-    def __init__(self):
-        pass
+    def __init__(self, height=420, width=420):
+        self.width = width
+        self.height = height
 
-    def render(self):
-        # Instantiating the initial properties for the application
+        # Initialize the pygame module
         pygame.init()
-        # Setting the height and width
-        self.gameDisplay = pygame.display.set_mode((400, 400))
-        self.gameDisplay.fill((245,235,235))
+
+        # Set the properties of the Display
+        self.gameDisplay = pygame.display.set_mode((self.height, self.width))
+        self.gameDisplay.fill(consts.BG_COLOR)
+        
         # Setting the caption
         pygame.display.set_caption('QIX')
 
-        # pygame.draw.rect(self.gameDisplay, (0,10,10), (20, 20, 280, 280))
         # Initializing the pixel property
         self.pixel = pygame.PixelArray(self.gameDisplay)
-        self.draw_borders()
+
+    def render(self):
+        """ Renders the graphics """
+
+        self.gameDisplay.fill(consts.BG_COLOR)
+
+        # Draw the borders
+        self._draw_borders()
+
+    def _draw_player(self):
+        """ Draws the player """
+        pass
         
-    def draw_borders(self, thick=2, margin=30, color=(0, 0, 0)):
-        x1, x2 = margin, 400 - margin
-        y1, y2 = 30, 30 + thick
-
-        self.pixel[x1:x2, y1:y2] = (0, 0, 0)
-        self.pixel[y1:y2, x1:x2] = (0, 0, 0)
-
-        self.pixel[x1:x2, x2:x2+thick] = (0, 0, 0)
-        self.pixel[x2:x2+thick, x1:x2] = (0, 0, 0)
+    def _draw_borders(self, thick=2, margin=20, color=(0, 0, 0)):
+        """ Draws the border for the QIX game """
+        self.pixel[margin: self.width - margin, margin:margin+thick] = color # Upper Horizontal Line
+        self.pixel[margin: self.width - margin, self.height - margin:self.height - margin + thick] = color # Lower Horizontal Line
+        self.pixel[margin: margin+thick, margin:self.height - margin] = color # Left Vertical Line
+        self.pixel[self.width - margin:self.width - margin + thick, margin:self.height - margin] = color # Right Vertical Line
 
 
 map = Map()
