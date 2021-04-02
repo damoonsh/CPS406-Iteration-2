@@ -51,7 +51,7 @@ class Player:
     def __init__(self):
         self.points = []
         self.x = (consts.MAP_WIDTH - consts.MARGIN) // 2
-        self.y = 400
+        self.y = consts.MAP_HEIGHT - consts.MARGIN
         self.claiming = False
         self.previous_direction = None
         self.life_force = 100
@@ -98,7 +98,7 @@ class Enemy:
         Manages the obstacles within the game 
     """
     class _Qix:
-        def __init__(self):
+        def __init__(self, x, y):
             # random x position QIX starts at
             self.x = random.randrange(
                 consts.MARGIN*2, consts.MAP_WIDTH - consts.MARGIN)
@@ -123,9 +123,9 @@ class Enemy:
 
         def _move_down(self):
             if self.y < consts.MAP_HEIGHT - consts.MARGIN - consts.QIX_DIM:
-                self.y += consts.MOVE_DIM
+                self.y += consts.QIX_DIM * 2
             else:
-                self.y -= consts.consts.MOVE_DIM
+                self.y -= consts.QIX_DIM
 
         def _move_up(self):
             if self.y > consts.MARGIN + consts.QIX_DIM:
@@ -146,13 +146,11 @@ class Enemy:
                 self.x += consts.QIX_DIM
 
     class _Sparx:
-        def __init__(self):
-            self.x = (consts.MAP_WIDTH - consts.MARGIN) // 2
-            self.y = consts.MARGIN - consts.SPARX_DIM
+        def __init__(self, x, y, orientation):
+            self.x = x
+            self.y = y
+            self.orientation = orientation
             self.dir = 'N'  # North, East, South, West border of grid
-
-        def initial_oposition(self):
-            pass
 
         def next_move(self):
 
@@ -185,6 +183,43 @@ class Enemy:
     def __init__(self):
         self.quixes = []
         self.sparxes = []
+    
+    def add_sparx(self):
+        x, y, orientation = self._random_position_sparx()
+        sparx = Enemy._Sparx(x, y, orientation)
+
+        self.sparxes.append(sparx)
+
+    def add_qix(self):
+        pass
+
+    def _random_position_qix(self):
+        """ Generates a random position for qix """
+        x = random.randrange(consts.MARGIN, consts.MAP_WIDTH - consts.MARGIN)
+        y = random.randrange(consts.MARGIN, consts.MAP_HEIGHT - consts.MARGIN)
+
+        return x, y
+
+    def _random_position_sparx(self):
+        """ Return random positions for sparx """
+
+        fix_x = [consts.MARGIN, consts.MAP_WIDTH - consts.MARGIN]
+        fix_y = [consts.MARGIN, consts.MAP_HEIGHT - consts.MARGIN]
+
+        if random.choice([0, 1]) == 0:
+            x = random.choice(fix_x)
+            y = random.randrange(consts.MARGIN, consts.MAP_HEIGHT - consts.MARGIN)
+            return x, y, 'vetical'
+        else:
+            x = random.randrange(consts.MARGIN, consts.MAP_WIDTH - consts.MARGIN)
+            y = random.choice(fix_y)
+            return x, y, 'horizontal'
+
+    def _random_move_qix(self):
+        pass
+
+    def _random_move_sparx(self):
+        pass
 
 
 class Map:
@@ -239,15 +274,15 @@ class Map:
         self._draw_sparx(self.sparx1.x, self.sparx1.y)
         self._draw_sparx(self.sparx2.x, self.sparx2.y)
 
-    def _draw_sparx(self, x, y):
+    def _draw_sparx(self, x, y, color=consts.SPARX_COLOR):
         pygame.draw.polygon(self.gameDisplay,
-                            consts.QIX_COLOR,
+                            color,
                             [(x, y), (x + consts.SPARX_DIM, y + consts.SPARX_DIM),
                              (x, y + 2 * consts.SPARX_DIM), (x - consts.SPARX_DIM, y + consts.SPARX_DIM)])
 
-    def _draw_qix(self):
+    def _draw_qix(self, color=consts.QIX_COLOR):
         pygame.draw.circle(self.gameDisplay,
-                           consts.SPARX_COLOR,
+                           ccolor,
                            self.qix.get_coordinate(),
                            consts.QIX_DIM)
 
@@ -320,6 +355,6 @@ while True:
     # If the game is not paused then render the graphics
     if not PAUSE:
         map.render()
-
+    if len(map.player.points) != 0: print(map.player.points[-1])
     pygame.display.update()
     clock.tick(consts.FPS)
