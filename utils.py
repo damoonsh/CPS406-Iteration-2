@@ -1,6 +1,6 @@
 import pygame
 import consts
-
+import random
 
 class Point:
     """
@@ -74,14 +74,19 @@ class Enemy:
     """
     class _Qix:
         def __init__(self):
-            pass
+            self.x = random.randrange(consts.MARGIN*2, consts.MAP_WIDTH - consts.MARGIN) #random x position QIX starts at
+            self.y = random.randrange(consts.MARGIN*2, consts.MAP_HEIGHT - consts.MARGIN) #random y position QIX starts at
+
+        def get_coordinate(self):
+            return (self.x, self.y)
 
         def next_move(self):
             pass
 
     class _Sparx:
         def __init__(self):
-            pass
+            self.x = (consts.MAP_WIDTH - consts.MARGIN) // 2
+            self.y = consts.MARGIN - consts.SPARX_DIM
 
         def next_move(self):
             pass
@@ -113,7 +118,17 @@ class Map:
         # Initializing the pixel property
         self.pixel = pygame.PixelArray(self.gameDisplay)
 
+        self.enemy = Enemy()
         self.player = Player()
+        self.qix = Enemy._Qix()
+        self.sparx1 = Enemy._Sparx()
+        self.sparx2 = Enemy._Sparx()
+        self.sparx2.x = self.sparx2.x - 100
+        self.sparx2.y = self.sparx2.y + consts.MAP_HEIGHT - 40 #setting y position of second sparx at bottom of map
+
+        self.enemy.quixes.append(self.qix)
+        self.enemy.sparxes.append(self.sparx1)
+        self.enemy.sparxes.append(self.sparx2)
 
     def render(self):
         """ Renders the graphics """
@@ -125,6 +140,8 @@ class Map:
         self._draw_player()
         self._draw_clamied_areas()
         self._draw_qix()
+        self._draw_sparx(self.sparx1.x, self.sparx1.y)
+        self._draw_sparx(self.sparx2.x, self.sparx2.y)
 
     def _draw_sparx(self, x, y):
         pygame.draw.polygon(self.gameDisplay,
@@ -132,11 +149,11 @@ class Map:
                             [(x, y), (x + consts.SPARX_DIM, y + consts.SPARX_DIM),
                              (x, y + 2 * consts.SPARX_DIM), (x - consts.SPARX_DIM, y + consts.SPARX_DIM)])
 
-    def _draw_qix(self, x=(consts.MAP_WIDTH - consts.MARGIN) // 2, y=consts.MARGIN - consts.QIX_DIM):
-        pygame.draw.polygon(self.gameDisplay,
+    def _draw_qix(self):
+        pygame.draw.circle(self.gameDisplay,
                             consts.QIX_COLOR,
-                            [(x, y), (x + consts.QIX_DIM, y + consts.QIX_DIM),
-                             (x, y + 2 * consts.QIX_DIM), (x - consts.QIX_DIM, y + consts.QIX_DIM)])
+                            self.qix.get_coordinate(),
+                            consts.QIX_DIM)
 
     def _draw_clamied_areas(self):
         pass
@@ -201,3 +218,4 @@ while True:
         map.render()
 
     pygame.display.update()
+    
