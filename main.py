@@ -7,7 +7,6 @@ import random
 from utils import *
 import consts
 
-clock = pygame.time.Clock()
 
 class Enemy:
     """ Manages the obstacles within the game """
@@ -19,8 +18,8 @@ class Enemy:
 
         def _random_position(self):
             """ Generates a random position for qix """
-            x = random.randrange(consts.MARGIN, consts.MAP_WIDTH - consts.MARGIN)
-            y = random.randrange(consts.MARGIN, consts.MAP_HEIGHT - consts.MARGIN)
+            x = random.randrange(consts.MARGIN // consts.PLAYER_RADIUS, (consts.MAP_WIDTH - consts.MARGIN) // consts.PLAYER_RADIUS) * consts.PLAYER_RADIUS
+            y = random.randrange(consts.MARGIN // consts.PLAYER_RADIUS, (consts.MAP_HEIGHT - consts.MARGIN) // consts.PLAYER_RADIUS) * consts.PLAYER_RADIUS
 
             return x, y
 
@@ -40,35 +39,38 @@ class Enemy:
 
         def _move_down(self):
             if self.y < consts.MAP_HEIGHT - consts.MARGIN - consts.QIX_DIM:
-                self.y += consts.QIX_DIM * 2
+                self.y += consts.MOVE_DIM 
             else:
-                self.y -= consts.QIX_DIM
+                self.y -= consts.MOVE_DIM 
 
         def _move_up(self):
             if self.y > consts.MARGIN + consts.QIX_DIM:
-                self.y -= consts.QIX_DIM * 2
+                self.y -= consts.MOVE_DIM 
             else:
-                self.y += consts.QIX_DIM
+                self.y += consts.MOVE_DIM 
 
         def _move_right(self):
             if self.x < consts.MAP_WIDTH - consts.MARGIN - consts.QIX_DIM:
-                self.x += consts.QIX_DIM * 2
+                self.x += consts.MOVE_DIM 
             else:
-                self.x -= consts.QIX_DIM
+                self.x -= consts.MOVE_DIM 
 
         def _move_left(self):
             if self.x > consts.MARGIN + consts.QIX_DIM:
-                self.x -= consts.QIX_DIM * 2
+                self.x -= consts.MOVE_DIM 
             else:
-                self.x += consts.QIX_DIM
+                self.x += consts.MOVE_DIM 
 
     class _Sparx:
         """ Implementing the logic for Sparx Object. """
         def __init__(self):
             self.x, self.y, self.orientation = self._random_position()
-            self.dir = 'N'  # North, East, South, West border of grid
+            if self.orientation == 'vertical':
+                self.dir = random.choice(['N', 'S'])
+            else:
+                self.dir = random.choice(['W', 'E'])
 
-
+            print(self._random_position(), self.dir)
         def get_coordinate(self):
             return self.x, self.y
 
@@ -84,36 +86,32 @@ class Enemy:
             if random.choice([0, 1]) == 0:
                 x = random.choice(fix_x)
                 y = random.randrange(consts.MARGIN // 5, (consts.MAP_HEIGHT - consts.MARGIN) // 5) * 5
-                return x, y, 'vetical'
+                return x, y, 'vertical'
             else:
                 x = random.randrange(consts.MARGIN // 5, (consts.MAP_WIDTH - consts.MARGIN) // 5) * 5
                 y = random.choice(fix_y)
                 return x, y, 'horizontal'
 
         def next_move(self):
-
             if self.dir == 'N':
                 if self.x == consts.MAP_WIDTH - consts.MARGIN:
                     self.dir = 'E'
                     self.y += consts.MOVE_DIM 
                 else:
                     self.x += consts.MOVE_DIM 
-
             elif self.dir == 'S':
-                if self.x < consts.MARGIN:
+                if self.x <= consts.MARGIN:
                     self.dir = 'W'
                     self.y -= consts.MOVE_DIM  
                 else:
                     self.x -= consts.MOVE_DIM 
-
             elif self.dir == 'W':
-                if self.y  < consts.MARGIN:
+                if self.y  <= consts.MARGIN:
                     self.dir = 'N'
                 else:
                     self.y -= consts.MOVE_DIM 
-
             else:  # if self.dir == 'E':
-                if self.y > consts.MAP_HEIGHT - consts.MARGIN:
+                if self.y == consts.MAP_HEIGHT - consts.MARGIN:
                     self.dir = 'S'
                 else:
                     self.y += consts.MOVE_DIM 
@@ -241,6 +239,8 @@ class Map:
 
 # Initialization
 PAUSE = False
+clock = pygame.time.Clock()
+
 map = Map()
 map.render()
 
