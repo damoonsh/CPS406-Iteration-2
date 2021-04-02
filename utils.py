@@ -25,7 +25,7 @@ class Player:
     """
     def __init__(self):
         self.points = []
-        self.x = 210
+        self.x = (consts.MAP_WIDTH - 2 * consts.MARGIN )// 2
         self.y = 400
         self.claiming = False
         self.previous_direction = None
@@ -45,20 +45,20 @@ class Player:
         if direction == 'down': self._move_down()
 
     def _move_right(self):
-        if self.x != consts.MAP_WIDTH - consts.MARGIN - consts.PLAYER_RADIUS:
-            self.x += consts.PLAYER_RADIUS * 2
+        if self.x != consts.MAP_WIDTH - consts.MARGIN:
+            self.x += consts.PLAYER_RADIUS 
 
     def _move_left(self):
-        if self.x != consts.MARGIN + consts.PLAYER_RADIUS:
-            self.x -= consts.PLAYER_RADIUS * 2
+        if self.x != consts.MARGIN:
+            self.x -= consts.PLAYER_RADIUS
 
     def _move_up(self):
         if self.y != consts.MARGIN:
-            self.y -= consts.PLAYER_RADIUS * 2 
+            self.y -= consts.PLAYER_RADIUS
     
     def _move_down(self):
         if self.y != consts.MAP_HEIGHT - consts.MARGIN:
-            self.y += consts.PLAYER_RADIUS * 2 
+            self.y += consts.PLAYER_RADIUS
 
 
 class Map:
