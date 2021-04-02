@@ -4,6 +4,7 @@ import random
 
 clock = pygame.time.Clock()
 
+
 class Point:
     """
         Point Object storing the properties and attributes
@@ -13,11 +14,29 @@ class Point:
     def __init__(self, x: int, y: int, move: str):
         self.x = x
         self.y = y
-        self.passer = []
         self.move = move
 
-    def add_passer(self, passer):
-        self.passer.append(passer)
+
+class Life:
+    """ Renders lifetime of the player """
+
+    def __init__(self, initial_life=consts.INIT_LIFE):
+        pygame.font.init()
+        self.life = initial_life
+        self.font = pygame.font.SysFont('Comic Sans MS', 30)
+
+    def update_life(self, collision_type):
+        """ Modifies the life value after collision, decides if the 
+        player has lost """
+        if collision_type == 'Qix':
+            self.life -= consts.QIX_DAMAGE
+        else:
+            self.life -= consts.SPARX_DAMAAGE
+
+        return self.life <= 0
+
+    def get_text(self):
+        return self.font.render(f'Life: {self.life}', False, consts.FONT_COLOR)
 
 
 class Player:
@@ -56,19 +75,19 @@ class Player:
 
     def _move_right(self):
         if self.x != consts.MAP_WIDTH - consts.MARGIN:
-            self.x += consts.PLAYER_RADIUS
+            self.x += consts.MOVE_DIM
 
     def _move_left(self):
         if self.x != consts.MARGIN:
-            self.x -= consts.PLAYER_RADIUS
+            self.x -= consts.MOVE_DIM
 
     def _move_up(self):
         if self.y != consts.MARGIN:
-            self.y -= consts.PLAYER_RADIUS
+            self.y -= consts.MOVE_DIM
 
     def _move_down(self):
         if self.y != consts.MAP_HEIGHT - consts.MARGIN:
-            self.y += consts.PLAYER_RADIUS
+            self.y += consts.MOVE_DIM
 
 
 class Enemy:
@@ -77,8 +96,12 @@ class Enemy:
     """
     class _Qix:
         def __init__(self):
-            self.x = random.randrange(consts.MARGIN*2, consts.MAP_WIDTH - consts.MARGIN) #random x position QIX starts at
-            self.y = random.randrange(consts.MARGIN*2, consts.MAP_HEIGHT - consts.MARGIN) #random y position QIX starts at
+            # random x position QIX starts at
+            self.x = random.randrange(
+                consts.MARGIN*2, consts.MAP_WIDTH - consts.MARGIN)
+            # random y position QIX starts at
+            self.y = random.randrange(
+                consts.MARGIN*2, consts.MAP_HEIGHT - consts.MARGIN)
             self.moves = ['down', 'up', 'left', 'right']
 
         def get_coordinate(self):
@@ -86,40 +109,44 @@ class Enemy:
 
         def next_move(self):
             move = self.moves[random.randrange(0, 4)]
-            if move == 'down': 
+            if move == 'down':
                 self._move_down()
-            if move == 'up': 
+            if move == 'up':
                 self._move_up()
-            if move == 'left': 
+            if move == 'left':
                 self._move_left()
-            if move == 'right': 
+            if move == 'right':
                 self._move_right()
 
         def _move_down(self):
             if self.y < consts.MAP_HEIGHT - consts.MARGIN - consts.QIX_DIM:
                 self.y += consts.QIX_DIM * 2
-            else: self.y -= consts.QIX_DIM 
+            else:
+                self.y -= consts.QIX_DIM
 
         def _move_up(self):
             if self.y > consts.MARGIN + consts.QIX_DIM:
                 self.y -= consts.QIX_DIM * 2
-            else: self.y += consts.QIX_DIM
+            else:
+                self.y += consts.QIX_DIM
 
         def _move_right(self):
             if self.x < consts.MAP_WIDTH - consts.MARGIN - consts.QIX_DIM:
                 self.x += consts.QIX_DIM * 2
-            else: self.x -= consts.QIX_DIM
+            else:
+                self.x -= consts.QIX_DIM
 
         def _move_left(self):
             if self.x > consts.MARGIN + consts.QIX_DIM:
                 self.x -= consts.QIX_DIM * 2
-            else: self.x += consts.QIX_DIM
+            else:
+                self.x += consts.QIX_DIM
 
     class _Sparx:
         def __init__(self):
             self.x = (consts.MAP_WIDTH - consts.MARGIN) // 2
             self.y = consts.MARGIN - consts.SPARX_DIM
-            self.dir = 'N' # North, East, South, West border of grid
+            self.dir = 'N'  # North, East, South, West border of grid
 
         def next_move(self):
 
@@ -142,8 +169,8 @@ class Enemy:
                     self.dir = 'N'
                 else:
                     self.y -= consts.SPARX_DIM * 2
-            
-            else: #if self.dir == 'E':
+
+            else:  # if self.dir == 'E':
                 if self.y + consts.SPARX_DIM > consts.MAP_HEIGHT - consts.MARGIN:
                     self.dir = 'S'
                 else:
@@ -166,6 +193,8 @@ class Map:
         # Initialize the pygame module
         pygame.init()
 
+        self.life = Life()
+
         # Set the properties of the Display
         self.gameDisplay = pygame.display.set_mode((self.height, self.width))
         self.gameDisplay.fill(consts.BG_COLOR)
@@ -176,14 +205,16 @@ class Map:
         # Initializing the pixel property
         self.pixel = pygame.PixelArray(self.gameDisplay)
 
-        self.enemy = Enemy()
         self.player = Player()
+
+        self.enemy = Enemy()
         self.qix = Enemy._Qix()
         self.sparx1 = Enemy._Sparx()
-        
+
         self.sparx2 = Enemy._Sparx()
         self.sparx2.x = self.sparx2.x - 140
-        self.sparx2.y = self.sparx2.y + consts.MAP_HEIGHT - 45 #setting y position of second sparx at bottom of map
+        # setting y position of second sparx at bottom of map
+        self.sparx2.y = self.sparx2.y + consts.MAP_HEIGHT - 45
         self.sparx2.dir = 'S'
 
         self.enemy.quixes.append(self.qix)
@@ -199,6 +230,8 @@ class Map:
         self._draw_borders()
         self._draw_player()
         self._draw_clamied_areas()
+        # self.gameDisplay.blit(self.life.get_text(), (0, 0))
+
         self._draw_qix()
         self._draw_sparx(self.sparx1.x, self.sparx1.y)
         self._draw_sparx(self.sparx2.x, self.sparx2.y)
@@ -211,9 +244,9 @@ class Map:
 
     def _draw_qix(self):
         pygame.draw.circle(self.gameDisplay,
-                            consts.QIX_COLOR,
-                            self.qix.get_coordinate(),
-                            consts.QIX_DIM)
+                           consts.SPARX_COLOR,
+                           self.qix.get_coordinate(),
+                           consts.QIX_DIM)
 
     def _draw_clamied_areas(self):
         pass
@@ -227,14 +260,19 @@ class Map:
 
     def _draw_borders(self, thick: int = consts.BORDER_THICKNESS, margin: int = consts.MARGIN, color: (int, int) = consts.BORDER_COLOR):
         """ Draws the border for the QIX game """
-        self.pixel[margin: self.width - margin, margin:margin +
-                   thick] = color  # Upper Horizontal Line
-        self.pixel[margin: self.width - margin, self.height -
-                   margin:self.height - margin + thick] = color  # Lower Horizontal Line
-        self.pixel[margin: margin+thick, margin:self.height -
-                   margin] = color  # Left Vertical Line
-        self.pixel[self.width - margin:self.width - margin + thick,
-                   margin:self.height - margin] = color  # Right Vertical Line
+        # Upper Horizontal Line
+        pygame.draw.line(self.gameDisplay, color,
+                         (margin, margin), (self.width - margin, margin))
+
+        # Lower Horizontal Line
+        pygame.draw.line(self.gameDisplay, color, (margin, self.height -
+                                                   margin), (self.width - margin, self.height - margin))
+        # Left Vertical Line
+        pygame.draw.line(self.gameDisplay, color,
+                         (margin, margin), (margin, self.height - margin))
+        # Right Vertical Line
+        pygame.draw.line(self.gameDisplay, color, (self.width - margin,
+                                                   margin), (self.width - margin, self.height - margin))
 
 
 # Initialization
