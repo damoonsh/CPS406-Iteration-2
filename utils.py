@@ -23,7 +23,7 @@ class Life:
     def __init__(self, initial_life=consts.INIT_LIFE):
         pygame.font.init()
         self.life = initial_life
-        self.font = pygame.font.SysFont('Comic Sans MS', 30)
+        self.font = pygame.font.SysFont('Comic Sans MS', 10)
 
     def update_life(self, collision_type):
         """ Modifies the life value after collision, decides if the 
@@ -37,6 +37,9 @@ class Life:
 
     def get_text(self):
         return self.font.render(f'Life: {self.life}', False, consts.FONT_COLOR)
+
+    def get_coordinate(self):
+        return (5, 2)
 
 
 class Player:
@@ -120,9 +123,9 @@ class Enemy:
 
         def _move_down(self):
             if self.y < consts.MAP_HEIGHT - consts.MARGIN - consts.QIX_DIM:
-                self.y += consts.QIX_DIM * 2
+                self.y += consts.MOVE_DIM
             else:
-                self.y -= consts.QIX_DIM
+                self.y -= consts.consts.MOVE_DIM
 
         def _move_up(self):
             if self.y > consts.MARGIN + consts.QIX_DIM:
@@ -147,6 +150,9 @@ class Enemy:
             self.x = (consts.MAP_WIDTH - consts.MARGIN) // 2
             self.y = consts.MARGIN - consts.SPARX_DIM
             self.dir = 'N'  # North, East, South, West border of grid
+
+        def initial_oposition(self):
+            pass
 
         def next_move(self):
 
@@ -202,9 +208,6 @@ class Map:
         # Setting the caption
         pygame.display.set_caption('QIX')
 
-        # Initializing the pixel property
-        self.pixel = pygame.PixelArray(self.gameDisplay)
-
         self.player = Player()
 
         self.enemy = Enemy()
@@ -230,7 +233,7 @@ class Map:
         self._draw_borders()
         self._draw_player()
         self._draw_clamied_areas()
-        # self.gameDisplay.blit(self.life.get_text(), (0, 0))
+        self.gameDisplay.blit(self.life.get_text(), self.life.get_coordinate())
 
         self._draw_qix()
         self._draw_sparx(self.sparx1.x, self.sparx1.y)

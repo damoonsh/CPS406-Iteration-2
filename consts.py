@@ -7,7 +7,7 @@ BG_COLOR = (250, 245, 245)
 PLAYER_COLOR = (0, 255, 0)
 QIX_COLOR = (255, 0, 0)
 BORDER_COLOR = (0, 0, 0)
-FONT_COLOR = (10, 200, 200)
+FONT_COLOR = (250, 0, 255)
 SPARX_COLOR = (250, 2, 255)
 
 # Constants used in the Game
