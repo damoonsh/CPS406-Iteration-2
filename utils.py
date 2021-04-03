@@ -6,10 +6,14 @@ import random
 class Point:
     """ Storing Point information """
 
-    def __init__(self, x: int, y: int, move: str):
+    def __init__(self, x: int, y: int, prev: Point):
         self.x = x
         self.y = y
-        self.move = move
+        self.prev = prev
+
+    def qualify_previous_point(self):
+        """ Checks to see if the previous point is in a line """
+        return (self.x == self.prev.x) or (self.y == self.prev.y)
 
 
 class Life:
@@ -70,9 +74,9 @@ class Player:
             self._move_right()
         if direction == 'left':
             self._move_left()
-        if direction == 'up' and self.claiming:
+        if direction == 'up':
             self._move_up()
-        if direction == 'down' and self.claiming:
+        if direction == 'down':
             self._move_down()
 
     def _move_right(self):
@@ -139,24 +143,31 @@ class Enemy:
             # Getting all the possible
             moves = []
 
-            if self.x != consts.MARGIN: moves.append('left')
-            if self.x != consts.MAP_WIDTH - consts.MARGIN: moves.append('right')
-            if self.y != consts.MAP_HEIGHT  - consts.MARGIN: moves.append('down')
-            if self.y != consts.MARGIN: moves.append('up')
-            
+            if self.x != consts.MARGIN:
+                moves.append('left')
+            if self.x != consts.MAP_WIDTH - consts.MARGIN:
+                moves.append('right')
+            if self.y != consts.MAP_HEIGHT - consts.MARGIN:
+                moves.append('down')
+            if self.y != consts.MARGIN:
+                moves.append('up')
+
             # Optimize the randomness
             if random.randrange(0, 10) > 1:
                 if "up" in moves and "down" in moves and len(moves) > 2:
-                    if self.prev_move_y == "down": moves.remove("up")
-                    if self.prev_move_y == "up": moves.remove("down")
-                
+                    if self.prev_move_y == "down":
+                        moves.remove("up")
+                    if self.prev_move_y == "up":
+                        moves.remove("down")
+
                 if "right" in moves and "left" in moves and len(moves) > 2:
-                    if self.prev_move_x == "right": moves.remove("left")
-                    elif self.prev_move_x == "left": moves.remove("right")
+                    if self.prev_move_x == "right":
+                        moves.remove("left")
+                    elif self.prev_move_x == "left":
+                        moves.remove("right")
 
             self.moves = moves
             # print(self.moves, self.prev_move)
-            
 
         def _move_right(self):
             if self.x != consts.MAP_WIDTH - consts.MARGIN:
@@ -189,7 +200,7 @@ class Enemy:
         def get_orientation(self):
             return self.orientation
 
-        def _random_position(self)-> (int, int):
+        def _random_position(self) -> (int, int):
             """ Return random positions for sparx """
             fix_x = [consts.MARGIN, consts.MAP_WIDTH - consts.MARGIN]
             fix_y = [consts.MARGIN, consts.MAP_HEIGHT - consts.MARGIN]
@@ -210,7 +221,7 @@ class Enemy:
         def _next_move(self):
             # Check to see the orientation should change
             self._check_orientation()
-            
+
             if self.move == None or self.change_move:
                 self._initiate_move()
                 self.change_move = False
@@ -224,20 +235,24 @@ class Enemy:
                 self._move_left()
             if self.move == 'right':
                 self._move_right()
-        
+
         def _initiate_move(self):
             if self.move == None:
                 # Base cases: 4 points of the rectangle
-                if self.x == consts.MARGIN and self.y == consts.MARGIN: self.move = random.choice(['right', 'down'])
-                if self.x == consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN: self.move = random.choice(['right', 'up'])
-                if self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MARGIN: self.move = random.choice(['left', 'down'])
-                if self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN: self.move = random.choice(['left', 'up'])
+                if self.x == consts.MARGIN and self.y == consts.MARGIN:
+                    self.move = random.choice(['right', 'down'])
+                if self.x == consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN:
+                    self.move = random.choice(['right', 'up'])
+                if self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MARGIN:
+                    self.move = random.choice(['left', 'down'])
+                if self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN:
+                    self.move = random.choice(['left', 'up'])
 
                 # 4 ranges
-                if self.x == consts.MARGIN and self.y > consts.MARGIN or self.x == consts.MAP_WIDTH - consts.MARGIN and self.y > consts.MARGIN: 
+                if self.x == consts.MARGIN and self.y > consts.MARGIN or self.x == consts.MAP_WIDTH - consts.MARGIN and self.y > consts.MARGIN:
                     self.move = random.choice(["down", "up"])
                 if self.x > consts.MARGIN and self.y == consts.MARGIN or self.x > consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN:
-                     self.move = random.choice(["right", "left"])
+                    self.move = random.choice(["right", "left"])
             elif self.orientation == 'vertical':
                 if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MARGIN):
                     self.move = "down"
@@ -248,7 +263,7 @@ class Enemy:
                     self.move = "right"
                 else:
                     self.move = 'left'
-        
+
         def _check_orientation(self):
             if self.orientation == 'vertical':
                 if self.y == consts.MARGIN or self.y == consts.MAP_HEIGHT - consts.MARGIN:
@@ -346,7 +361,7 @@ class Map:
 
     def _draw_sparx(self, sparx: Enemy._Sparx, color=consts.SPARX_COLOR):
         x, y = sparx.get_coordinate()
-        
+
         pygame.draw.polygon(self.gameDisplay,
                             color,
                             [(x, y - consts.SPARX_DIM), (x + consts.SPARX_DIM, y),
@@ -394,41 +409,41 @@ def run():
     PAUSE = False
     map = Map()
     map.render()
-    
+
     while True:
         for event in pygame.event.get():
-    
+
             # Quitting the game
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-    
+
             if event.type == pygame.KEYDOWN:
-    
+
                 # Starting to claim territory
                 if event.key == pygame.K_SPACE:
                     map.player.claiming = not map.player.claiming
-    
+
                 # Pausing
                 if event.key == pygame.K_p:
                     PAUSE = not PAUSE
-    
+
                 # Moving manually
                 if event.key == pygame.K_RIGHT:
                     map.player.move(direction="right")
-    
+
                 if event.key == pygame.K_LEFT:
                     map.player.move(direction="left")
-    
+
                 if event.key == pygame.K_UP:
                     map.player.move(direction="up")
-    
+
                 if event.key == pygame.K_DOWN:
                     map.player.move(direction="down")
-    
+
         # If the game is not paused then render the graphics
         if not PAUSE:
             map.render()
-        
+
         pygame.display.update()
         clock.tick(consts.FPS)
