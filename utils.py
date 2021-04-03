@@ -70,9 +70,9 @@ class Player:
             self._move_right()
         if direction == 'left':
             self._move_left()
-        if direction == 'up':
+        if direction == 'up' and self.claiming:
             self._move_up()
-        if direction == 'down':
+        if direction == 'down' and self.claiming:
             self._move_down()
 
     def _move_right(self):
@@ -116,7 +116,7 @@ class Enemy:
         def get_coordinate(self):
             return (self.x, self.y)
 
-        def next_move(self):
+        def _next_move(self):
             self._possible_moves()
 
             self.prev_move = random.choice(self.moves)
@@ -180,7 +180,8 @@ class Enemy:
         def __init__(self):
             self.move = None  # up, down, left, right of the grid
             self.x, self.y, self.orientation = self._random_position()
-            print(self.x, self.y, self.orientation)
+            self.change_move = False
+            # print(self.x, self.y, self.orientation)
 
         def get_coordinate(self) -> (int, int):
             return self.x, self.y
@@ -206,21 +207,14 @@ class Enemy:
                 y = random.choice(fix_y)
                 return x, y, 'horizontal'
 
-        def next_move(self):
+        def _next_move(self):
             # Check to see the orientation should change
             self._check_orientation()
             
-            if self.orientation == 'horizontal':
-                if self.x == consts.MARGIN: self.move = 'left'
-                else:
-                    self.move = random.choice(['right', 'left'])
-            else:
-                if self.y == consts.MARGIN:  # to set initial direction
-                    self.move = 'up'
-                else:
-                    self.move = random.choice(['down', 'up'])
-            
-            print(self.move)
+            if self.move == None or self.change_move:
+                self._initiate_move()
+                self.change_move = False
+                # print(self.move, self.orientation)
 
             if self.move == 'down':
                 self._move_down()
@@ -231,29 +225,47 @@ class Enemy:
             if self.move == 'right':
                 self._move_right()
         
+        def _initiate_move(self):
+            if self.move == None:
+                # Base cases: 4 points of the rectangle
+                if self.x == consts.MARGIN and self.y == consts.MARGIN: self.move = random.choice(['right', 'down'])
+                if self.x == consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN: self.move = random.choice(['right', 'up'])
+                if self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MARGIN: self.move = random.choice(['left', 'down'])
+                if self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN: self.move = random.choice(['left', 'up'])
+
+                # 4 ranges
+                if self.x == consts.MARGIN and self.y > consts.MARGIN or self.x == consts.MAP_WIDTH - consts.MARGIN and self.y > consts.MARGIN: 
+                    self.move = random.choice(["down", "up"])
+                if self.x > consts.MARGIN and self.y == consts.MARGIN or self.x > consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN:
+                     self.move = random.choice(["right", "left"])
+            elif self.orientation == 'vertical':
+                if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MARGIN):
+                    self.move = "down"
+                else:
+                    self.move = 'up'
+            else:
+                if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (self.x == consts.MARGIN and self.y == consts.MAP_WIDTH - consts.MARGIN):
+                    self.move = "right"
+                else:
+                    self.move = 'left'
+        
         def _check_orientation(self):
             if self.orientation == 'vertical':
                 if self.y == consts.MARGIN or self.y == consts.MAP_HEIGHT - consts.MARGIN:
                     self.orientation = 'horizontal'
+                    self.change_move = True
             else:
                 if self.x == consts.MARGIN or self.x == consts.MAP_HEIGHT - consts.MARGIN:
                     self.orientation = 'vertical'
+                    self.change_move = True
 
-        def _move_right(self):
-            if self.x != consts.MAP_WIDTH - consts.MARGIN:
-                self.x += consts.MOVE_DIM
+        def _move_right(self): self.x += consts.MOVE_DIM
 
-        def _move_left(self):
-            if self.x != consts.MARGIN:
-                self.x -= consts.MOVE_DIM
+        def _move_left(self): self.x -= consts.MOVE_DIM
 
-        def _move_up(self):
-            if self.y != consts.MARGIN:
-                self.y -= consts.MOVE_DIM
+        def _move_up(self): self.y -= consts.MOVE_DIM
 
-        def _move_down(self):
-            if self.y != consts.MAP_HEIGHT - consts.MARGIN:
-                self.y += consts.MOVE_DIM
+        def _move_down(self): self.y += consts.MOVE_DIM
 
     def __init__(self):
         self.quixes = []
@@ -276,10 +288,10 @@ class Enemy:
 
     def _fetch_next_moves(self):
         for sparx in self.sparxes:
-            sparx.next_move()
+            sparx._next_move()
 
         for quix in self.quixes:
-            quix.next_move()
+            quix._next_move()
 
 
 class Map:
@@ -337,16 +349,16 @@ class Map:
         
         pygame.draw.polygon(self.gameDisplay,
                             color,
-                            [(x, y), (x + consts.SPARX_DIM, y + consts.SPARX_DIM),
-                             (x, y + 2 * consts.SPARX_DIM), (x - consts.SPARX_DIM, y + consts.SPARX_DIM)])
+                            [(x, y - consts.SPARX_DIM), (x + consts.SPARX_DIM, y),
+                             (x, y + consts.SPARX_DIM), (x - consts.SPARX_DIM, y)])
 
     def _draw_qix(self, quix: Enemy._Qix, color=consts.QIX_COLOR):
         x, y = quix.get_coordinate()
 
         pygame.draw.polygon(self.gameDisplay,
                             consts.QIX_COLOR,
-                            [(x, y), (x + consts.QIX_DIM, y + consts.QIX_DIM),
-                             (x, y + 2 * consts.QIX_DIM), (x - consts.QIX_DIM, y + consts.QIX_DIM)])
+                            [(x, y - consts.QIX_DIM), (x + consts.QIX_DIM, y),
+                             (x, y + consts.QIX_DIM), (x - consts.QIX_DIM, y)])
 
     def _draw_clamied_areas(self):
         pass
@@ -399,7 +411,7 @@ def run():
     
                 # Pausing
                 if event.key == pygame.K_p:
-                    PAUSE = True
+                    PAUSE = not PAUSE
     
                 # Moving manually
                 if event.key == pygame.K_RIGHT:
