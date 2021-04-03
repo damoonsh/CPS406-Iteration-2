@@ -11,18 +11,19 @@ class Point:
         self.y = y
         self.prev = prev
 
-    def qualify_previous_point(self):
-        """ Checks to see if the previous point is in a line """
-        return (self.x == self.prev.x) or (self.y == self.prev.y)
+    def get_coordinate(self):
+        return (self.x, self.y)
 
 
-class Life:
-    """ Renders lifetime of the player """
+class Text:
+    """ Lives and claimed area text """
 
     def __init__(self, initial_life: int = consts.INIT_LIFE):
         pygame.font.init()
         self.life = initial_life
         self.font = pygame.font.SysFont('Comic Sans MS', consts.FONT_SIZE)
+
+        self.claimed_percentage = 0
 
     def update(self, collision_type: str):
         """
@@ -37,15 +38,18 @@ class Life:
 
         return self.life <= 0
 
+    def add_percentage(self, addittion_value):
+        self.claimed_percentage += addittion_value
+
     def get_text(self):
-        return self.font.render(f'Life: {self.life}', True, consts.FONT_COLOR)
+        space = " " * ( consts.MARGIN // 2)
+        return self.font.render(f'{space}Life: {self.life}{space}Claimed Percentage: {self.claimed_percentage}%', True, consts.FONT_COLOR)
 
     def get_coordinate(self):
         return consts.INIT_COOR
 
 
 class Player:
-
     """
         Player Object that implements the logic of the
         player moving in the map.
@@ -149,7 +153,7 @@ class Enemy:
 
             x = random.randrange(range_x, range_y) * consts.MOVE_DIM
             y = random.randrange(range_x, range_y) * consts.MOVE_DIM
-            print("Inital Qix: ", x, y)
+            
             return x, y
 
         def get_coordinate(self):
@@ -354,7 +358,7 @@ class Map:
         # Initialize the pygame module
         pygame.init()
 
-        self.life = Life()
+        self.life = Text()
 
         # Set the properties of the Display
         self.gameDisplay = pygame.display.set_mode((self.height, self.width))
@@ -382,7 +386,7 @@ class Map:
         self.enemy.update()
         self._render_enemy()
 
-        # Write the life text
+        # Write the  text
         # Note: This should be rendered at the end to overwrite anything else!
         self.gameDisplay.blit(self.life.get_text(), self.life.get_coordinate())
 
@@ -438,7 +442,6 @@ class Map:
 
 
 def run():
-
     # Initialization
     clock = pygame.time.Clock()
     PAUSE = False
@@ -463,7 +466,7 @@ def run():
                 if event.key == pygame.K_p:
                     PAUSE = not PAUSE
 
-                # Moving manually
+                # Moving Manually
                 if event.key == pygame.K_RIGHT:
                     map.player.move("right")
 

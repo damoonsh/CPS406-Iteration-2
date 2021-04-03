@@ -11,7 +11,7 @@ FONT_COLOR = (90, 90, 90)
 SPARX_COLOR = (100, 2, 245)
 
 # Constants for font
-FONT_SIZE = 25
+FONT_SIZE = 20
 
 # Constants used in the Game
 PLAYER_RADIUS = QIX_DIM = SPARX_DIM = 10
