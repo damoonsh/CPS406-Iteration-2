@@ -3,11 +3,11 @@
     throughout the program
 """
 # Colors
-BG_COLOR = (250, 245, 245)
+BG_COLOR = (0, 0, 0)
 PLAYER_COLOR = (0, 255, 0)
 QIX_COLOR = (255, 0, 0)
-BORDER_COLOR = (0, 0, 0)
-FONT_COLOR = (0, 20, 25)
+BORDER_COLOR = (255, 255, 255)
+FONT_COLOR = (90, 90, 90)
 SPARX_COLOR = (100, 2, 245)
 
 # Constants for font
