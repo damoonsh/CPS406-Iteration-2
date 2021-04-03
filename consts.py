@@ -8,7 +8,7 @@ PLAYER_COLOR = (0, 255, 0)
 QIX_COLOR = (255, 0, 0)
 BORDER_COLOR = (0, 0, 0)
 FONT_COLOR = (0, 20, 25)
-SPARX_COLOR = (250, 2, 255)
+SPARX_COLOR = (100, 2, 245)
 
 # Constants for font
 FONT_SIZE = 25
