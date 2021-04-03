@@ -6,7 +6,7 @@ import random
 class Point:
     """ Storing Point information """
 
-    def __init__(self, x: int, y: int, prev: Point):
+    def __init__(self, x: int, y: int, prev):
         self.x = x
         self.y = y
         self.prev = prev
@@ -56,28 +56,63 @@ class Player:
         self.x = (consts.MAP_WIDTH - consts.MARGIN) // 2
         self.y = consts.MAP_HEIGHT - consts.MARGIN
         self.claiming = False
-        self.previous_direction = None
-        self.life_force = 100
+        self.previous_move = None
+
+        self.life_force = 10
+        # Claimed areas will be rendered via this list
+        self.claimed_points = []
 
     def get_coordinate(self):
         return (self.x, self.y)
 
-    def move(self, direction: str):
+    def move(self, move: str):
         """ Controls the movement of the player """
-        if self.previous_direction != direction:
-            self.previous_direction == direction
+        if not self.claiming: 
+            self._claimless_move(move)
+        else:
+            if self._opposite_movement(move): self._coordinate_move(move)    
 
-        if self.claiming:
-            self.points.append(Point(self.x, self.y, direction))
+    def _opposite_movement(self, move):
+        if move == self.previous_move:
+            return True
+        elif move == 'left' or move =='right':
+            return not (self.previous_move == 'left' or self.previous_move == 'right')
+        elif move == 'up' or move =='down':
+            return not (self.previous_move == 'up' or self.previous_move == 'down')
+        else:
+            return True
 
-        if direction == 'right':
+    def _coordinate_move(self, move):
+
+        self.previous_move = move
+
+        if move == 'right':
             self._move_right()
-        if direction == 'left':
+        if move == 'left':
             self._move_left()
-        if direction == 'up':
+        if move == 'up':
             self._move_up()
-        if direction == 'down':
+        if move == 'down':
             self._move_down()
+
+    def _get_orientation(self):
+        if (self.x == consts.MARGIN or self.x == consts.MAP_WIDTH - consts.MARGIN) and (self.y > consts.MARGIN):
+            self.orientation = 'vertical'
+        elif (self.y == consts.MARGIN or self.y == consts.MAP_WIDTH - consts.MARGIN) and (self.x > consts.MARGIN):
+            self.orientation = 'horizontal'
+        else:
+            self.orientation = 'none'
+    
+    def _claimless_move(self, move):
+        """ Handles the movement when player is not claiming areas"""
+        self._get_orientation()
+
+        if self.orientation == 'vertical' and (move == 'up' or move == 'down'):
+            self._coordinate_move(move)
+        elif self.orientation != 'vertical' and (move == 'right' or move == 'left'):
+            self._coordinate_move(move)
+        else:
+            pass
 
     def _move_right(self):
         if self.x != consts.MAP_WIDTH - consts.MARGIN:
@@ -422,7 +457,7 @@ def run():
 
                 # Starting to claim territory
                 if event.key == pygame.K_SPACE:
-                    map.player.claiming = not map.player.claiming
+                    map.player.claiming = True
 
                 # Pausing
                 if event.key == pygame.K_p:
@@ -430,16 +465,16 @@ def run():
 
                 # Moving manually
                 if event.key == pygame.K_RIGHT:
-                    map.player.move(direction="right")
+                    map.player.move("right")
 
                 if event.key == pygame.K_LEFT:
-                    map.player.move(direction="left")
+                    map.player.move("left")
 
                 if event.key == pygame.K_UP:
-                    map.player.move(direction="up")
+                    map.player.move("up")
 
                 if event.key == pygame.K_DOWN:
-                    map.player.move(direction="down")
+                    map.player.move("down")
 
         # If the game is not paused then render the graphics
         if not PAUSE:
