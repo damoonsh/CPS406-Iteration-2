@@ -6,6 +6,8 @@ Note:
 - The Map object will only be rendering the graphics.
 - The logic aspect of things should be implemented in other objects.
 - Qix and Sparx should not collide with each other.
+- When player moves toward certain direction, they will not be able to move in the opposite direction.
+- Qixes will not hit the player on the borders, Sparxes will.
 
 1. Class Enemy
     1. _Sparx_: 
