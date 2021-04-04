@@ -145,6 +145,7 @@ class Enemy:
             self.prev_move_x = None
             self.prev_move_y = None
             self.prev_move = None
+            self.collision = None
 
         def _random_position(self):
             """ Generates a random position for qix """
@@ -232,6 +233,7 @@ class Enemy:
             self.x, self.y, self.orientation = self._random_position()
             self.change_move = False
             # print(self.x, self.y, self.orientation)
+            self.collision = None
 
         def get_coordinate(self) -> (int, int):
             return self.x, self.y
@@ -347,6 +349,19 @@ class Enemy:
         for quix in self.quixes:
             quix._next_move()
 
+    def _check_collisions(self, player_coordinate):
+        for qix in self.quixes:
+            if qix.get_coordinate() == player_coordinate:
+                qix.collision = True
+            else:
+                qix.collision = False
+
+        for sparx in self.sparxes:
+            if sparx.get_coordinate() == player_coordinate:
+                sparx.collision = True
+            else:
+                sparx.collision = False
+
 
 class Map:
     """ Main map that renders everything within here """
@@ -385,7 +400,9 @@ class Map:
 
         self.enemy.update()
         self._render_enemy()
-
+        self.enemy._check_collisions(self.player.get_coordinate())
+        self._update_life()
+        
         # Write the  text
         # Note: This should be rendered at the end to overwrite anything else!
         self.gameDisplay.blit(self.life.get_text(), self.life.get_coordinate())
@@ -439,6 +456,17 @@ class Map:
         # Right Vertical Line
         pygame.draw.line(self.gameDisplay, color, (self.width - margin,
                                                    margin), (self.width - margin, self.height - margin))
+
+    def _update_life(self):
+        for qix in self.enemy.quixes:
+            if qix.collision:
+                self.life.update('QIX')
+                qix.collision = False
+        
+        for sparx in self.enemy.sparxes:
+            if sparx.collision:
+                self.life.update('SPARX')
+                sparx.collision = False
 
 
 def run():
