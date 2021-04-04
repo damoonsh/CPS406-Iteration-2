@@ -42,8 +42,9 @@ class Text:
         self.claimed_percentage += addittion_value
 
     def get_text(self):
-        space = " " * ( consts.MARGIN // 2)
-        return self.font.render(f'{space}Life: {self.life}{space}Claimed Percentage: {self.claimed_percentage}%', True, consts.FONT_COLOR)
+        space = " " * (consts.MARGIN // 2)
+        return self.font.render(f'{space}Life: {self.life}{space}Claimed Percentage: {self.claimed_percentage}%', True,
+                                consts.FONT_COLOR)
 
     def get_coordinate(self):
         return consts.INIT_COOR
@@ -61,27 +62,70 @@ class Player:
         self.y = consts.MAP_HEIGHT - consts.MARGIN
         self.claiming = False
         self.previous_move = None
-
+        self.incursion_starting_point = None
         self.life_force = 10
+        self.claimed_area = 0
         # Claimed areas will be rendered via this list
         self.claimed_points = []
+        self.claimed_areas = []
+        self.current_incursion = []
 
     def get_coordinate(self):
         return (self.x, self.y)
 
+    def add_incursion_point(self):
+        x, y = self.get_coordinate()
+        self.current_incursion.append([x, y])
+
+    def finish_incursion(self):
+        self.claimed_points.append(self.current_incursion)
+        self.current_incursion = []
+        self.claiming = False
+
+    def is_claimed_point(self, x, y):
+        i = 0
+        while i < len(self.claimed_points):
+            for point in self.claimed_points[i]:
+                if point:
+                    if point[0] == x and point[1] == y:
+                        return True
+                i += 1
+
+        return False
+
+    def offset(self, iterable):
+        prev = None
+        for elem in iterable:
+            yield prev, elem
+            prev = elem
+
+    def margin_collision(self):
+        if self.previous_move == 'left' and self.x == consts.MARGIN:
+            return True
+        elif self.previous_move == 'right' and self.x == consts.MAP_WIDTH - consts.MARGIN:
+            return True
+        elif self.previous_move == 'up' and self.y == consts.MARGIN:
+            return True
+        elif self.previous_move == 'down' and self.y == consts.MAP_HEIGHT - consts.MARGIN:
+            return True
+        else:
+            return False
+
     def move(self, move: str):
         """ Controls the movement of the player """
-        if not self.claiming: 
+        if self.claiming:
+            self._claim_move(move)
+        if not self.claiming:
             self._claimless_move(move)
         else:
-            if self._opposite_movement(move): self._coordinate_move(move)    
+            if self._opposite_movement(move): self._coordinate_move(move)
 
     def _opposite_movement(self, move):
         if move == self.previous_move:
             return True
-        elif move == 'left' or move =='right':
+        elif move == 'left' or move == 'right':
             return not (self.previous_move == 'left' or self.previous_move == 'right')
-        elif move == 'up' or move =='down':
+        elif move == 'up' or move == 'down':
             return not (self.previous_move == 'up' or self.previous_move == 'down')
         else:
             return True
@@ -106,7 +150,7 @@ class Player:
             self.orientation = 'horizontal'
         else:
             self.orientation = 'none'
-    
+
     def _claimless_move(self, move):
         """ Handles the movement when player is not claiming areas"""
         self._get_orientation()
@@ -118,25 +162,51 @@ class Player:
         else:
             pass
 
+    def _claim_move(self, move):
+        """ Handles movement when player is claiming areas"""
+        if not self._opposite_movement(move):
+            pass
+        else:
+            self._claimless_move(move)
+            self.add_incursion_point()
+            self.previous_move = move
+
+            if self.margin_collision():
+                start = self.current_incursion[0]
+                end = self.current_incursion[-1]
+                self.finish_incursion()
+
+
+
+
     def _move_right(self):
         if self.x != consts.MAP_WIDTH - consts.MARGIN:
             self.x += consts.MOVE_DIM
+        # elif self.is_claimed_point(self.x + consts.MOVE_DIM, self.y):
+        #     self.x += consts.MOVE_DIM
 
     def _move_left(self):
         if self.x != consts.MARGIN:
             self.x -= consts.MOVE_DIM
+        # elif self.is_claimed_point(self.x - consts.MOVE_DIM, self.y):
+        #     self.x -= consts.MOVE_DIM
 
     def _move_up(self):
         if self.y != consts.MARGIN:
             self.y -= consts.MOVE_DIM
+        # elif self.is_claimed_point(self.x, self.y - consts.MOVE_DIM):
+        #     self.y -= consts.MOVE_DIM
 
     def _move_down(self):
         if self.y != consts.MAP_HEIGHT - consts.MARGIN:
             self.y += consts.MOVE_DIM
+        # elif self.is_claimed_point(self.x, self.y + consts.MOVE_DIM):
+        #     self.y += consts.MOVE_DIM
 
 
 class Enemy:
     """ Manages the obstacles within the game """
+
     class _Qix:
         """ Implementing the logic for Qix Object. """
 
@@ -153,7 +223,7 @@ class Enemy:
 
             x = random.randrange(range_x, range_y) * consts.MOVE_DIM
             y = random.randrange(range_x, range_y) * consts.MOVE_DIM
-            
+
             return x, y
 
         def get_coordinate(self):
@@ -293,12 +363,14 @@ class Enemy:
                 if self.x > consts.MARGIN and self.y == consts.MARGIN or self.x > consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN:
                     self.move = random.choice(["right", "left"])
             elif self.orientation == 'vertical':
-                if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MARGIN):
+                if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (
+                        self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MARGIN):
                     self.move = "down"
                 else:
                     self.move = 'up'
             else:
-                if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (self.x == consts.MARGIN and self.y == consts.MAP_WIDTH - consts.MARGIN):
+                if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (
+                        self.x == consts.MARGIN and self.y == consts.MAP_WIDTH - consts.MARGIN):
                     self.move = "right"
                 else:
                     self.move = 'left'
@@ -313,13 +385,17 @@ class Enemy:
                     self.orientation = 'vertical'
                     self.change_move = True
 
-        def _move_right(self): self.x += consts.MOVE_DIM
+        def _move_right(self):
+            self.x += consts.MOVE_DIM
 
-        def _move_left(self): self.x -= consts.MOVE_DIM
+        def _move_left(self):
+            self.x -= consts.MOVE_DIM
 
-        def _move_up(self): self.y -= consts.MOVE_DIM
+        def _move_up(self):
+            self.y -= consts.MOVE_DIM
 
-        def _move_down(self): self.y += consts.MOVE_DIM
+        def _move_down(self):
+            self.y += consts.MOVE_DIM
 
     def __init__(self):
         self.quixes = []
@@ -382,6 +458,7 @@ class Map:
         # Draw the player and the claimed areas
         self._draw_player()
         self._draw_clamied_areas()
+        self._draw_current_incursion()
 
         self.enemy.update()
         self._render_enemy()
@@ -414,8 +491,52 @@ class Map:
                             [(x, y - consts.QIX_DIM), (x + consts.QIX_DIM, y),
                              (x, y + consts.QIX_DIM), (x - consts.QIX_DIM, y)])
 
+    def _determine_qix_direction(self, qix: Enemy._Qix, claimed_list):
+        qix_coordinates = qix.get_coordinate()
+        i = 0
+        is_right = True
+        is_left = True
+        is_above = True
+        is_below = True
+        for point in claimed_list:
+            if point[0] > qix_coordinates[0]:
+                is_right = False
+            if point[0] < qix_coordinates[0]:
+                is_left = False
+            if point[1] < qix_coordinates[1]:
+                is_above = False
+            if point[1] > qix_coordinates[1]:
+                is_below = False
+        return is_right, is_left, is_above, is_below
+
+    def fill_areas(self, is_qix_above, points_list):
+        start = points_list[0]
+        end = points_list[-1]
+        if not is_qix_above:
+            for point in points_list:
+                pass
+
+                # To do.
+
     def _draw_clamied_areas(self):
-        pass
+        i = 0
+        while i < len(self.player.claimed_points):
+            for point_a, point_b in self.player.offset(self.player.claimed_points[i]):
+                if point_a and point_b:
+                    pygame.draw.line(self.gameDisplay, consts.BORDER_COLOR, (point_a[0], point_a[1]), (point_b[0], point_b[1]), 2)
+
+                directional_table = self._determine_qix_direction(self.enemy.quixes[0], self.player.claimed_points[i])
+                # if not directional_table[2]:
+                #     fill_areas(False, self.player.claimed_points[i])
+                # To do.
+
+            i += 1
+
+    def _draw_current_incursion(self):
+        for point_a, point_b in self.player.offset(self.player.current_incursion):
+            if point_a and point_b:
+                pygame.draw.line(self.gameDisplay, consts.INCURSION_COLOR, (point_a[0], point_a[1]),
+                                     (point_b[0], point_b[1]), 1)
 
     def _draw_player(self):
         """ Draws the player """
@@ -461,6 +582,8 @@ def run():
                 # Starting to claim territory
                 if event.key == pygame.K_SPACE:
                     map.player.claiming = True
+                    map.player.incursion_starting_point = map.player.get_coordinate()
+
 
                 # Pausing
                 if event.key == pygame.K_p:

@@ -1,5 +1,5 @@
 """
-    This file contains the constants used 
+    This file contains the constants used
     throughout the program
 """
 # Colors
@@ -9,6 +9,8 @@ QIX_COLOR = (255, 0, 0)
 BORDER_COLOR = (255, 255, 255)
 FONT_COLOR = (90, 90, 90)
 SPARX_COLOR = (100, 2, 245)
+INCURSION_COLOR = (255, 155, 155)
+CLAIMED_AREA_COLOR = (170, 58, 189)
 
 # Constants for font
 FONT_SIZE = 20
@@ -19,6 +21,7 @@ MARGIN = 20
 MAP_WIDTH = 420
 MAP_HEIGHT = 420
 MOVE_DIM = PLAYER_RADIUS
+MAP_AREA = (MAP_HEIGHT - MARGIN) * (MAP_WIDTH - MARGIN)
 
 # Constants related to life
 INIT_LIFE = 10
