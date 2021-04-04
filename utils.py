@@ -352,7 +352,9 @@ class Enemy:
     def _check_collisions(self, player_coordinate):
         for qix in self.quixes:
             if qix.get_coordinate() == player_coordinate:
-                qix.collision = True
+                qix_x, qix_y = qix.get_coordinate()
+                if (qix_x != consts.MARGIN and qix_x != ( consts.MAP_WIDTH - consts.MARGIN)) and (qix_y != consts.MARGIN and qix_y != (consts.MAP_HEIGHT - consts.MARGIN)):
+                    qix.collision = True
             else:
                 qix.collision = False
 
