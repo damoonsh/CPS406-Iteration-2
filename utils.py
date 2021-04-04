@@ -176,9 +176,6 @@ class Player:
                 end = self.current_incursion[-1]
                 self.finish_incursion()
 
-
-
-
     def _move_right(self):
         if self.x != consts.MAP_WIDTH - consts.MARGIN:
             self.x += consts.MOVE_DIM
