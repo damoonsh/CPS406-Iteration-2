@@ -35,11 +35,20 @@ class Border:
 
     def __init__(self):
         self.points = []
+        self._initiate()
 
     def _initiate(self):
         """ Initiales the  border. """
-        for border_point in border_points:
-            pass
+        for point1 in border_points:
+            
+            point = Point(point1[0], point1[0])
+
+            for point2 in border_points:
+                if point1 != point2:
+                    if self._if_adjacent(point1, point2):
+                        point.adj_vertices.append((point2[0], point2[1]))
+
+            self.points.append(point)
 
     def _if_adjacent(self, p1: Point, p2: Point):
         """ Checks to see if two points (vertices) are adjacent
@@ -48,7 +57,7 @@ class Border:
 
             Checks to see if either the y or x is the same?
         """
-        return p1.x == p2.x or p1.y == p2.y
+        return p1[0] == p2[0] or p1[1] == p2[1]
 
 
 class Text:
@@ -445,6 +454,8 @@ class Map:
 
         self.text = Text()
 
+        self.border = Border()
+
         # Set the properties of the Display
         self.gameDisplay = pygame.display.set_mode((self.height, self.width))
         self.gameDisplay.fill(consts.BG_COLOR)
@@ -514,19 +525,29 @@ class Map:
 
     def _draw_borders(self, margin: int = consts.MARGIN, color: (int, int, int) = consts.BORDER_COLOR):
         """ Draws the border for the QIX game """
-        # Upper Horizontal Line
-        pygame.draw.line(self.gameDisplay, color,
-                         (margin, margin), (self.width - margin, margin))
 
-        # Lower Horizontal Line
-        pygame.draw.line(self.gameDisplay, color, (margin, self.height -
-                                                   margin), (self.width - margin, self.height - margin))
-        # Left Vertical Line
-        pygame.draw.line(self.gameDisplay, color,
-                         (margin, margin), (margin, self.height - margin))
-        # Right Vertical Line
-        pygame.draw.line(self.gameDisplay, color, (self.width - margin,
-                                                   margin), (self.width - margin, self.height - margin))
+        for point in self.border.points:
+            start_point = point.get_coordinate()
+            if not self.player.claiming: print(f'{start_point}')
+            for adj_vertice in point.adj_vertices:
+                if not self.player.claiming: print(adj_vertice, end='')    
+                pygame.draw.line(self.gameDisplay, 
+                                color,
+                                start_point, adj_vertice)
+
+        # # Upper Horizontal Line
+        # pygame.draw.line(self.gameDisplay, color,
+        #                  (margin, margin), (self.width - margin, margin))
+
+        # # Lower Horizontal Line
+        # pygame.draw.line(self.gameDisplay, color, (margin, self.height -
+        #                                            margin), (self.width - margin, self.height - margin))
+        # # Left Vertical Line
+        # pygame.draw.line(self.gameDisplay, color,
+        #                  (margin, margin), (margin, self.height - margin))
+        # # Right Vertical Line
+        # pygame.draw.line(self.gameDisplay, color, (self.width - margin,
+        #                                            margin), (self.width - margin, self.height - margin))
 
     def _update_life(self, player):
         for qix in self.enemy.quixes:
