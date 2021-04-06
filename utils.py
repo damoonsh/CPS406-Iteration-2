@@ -61,7 +61,7 @@ class Player:
         self.y = consts.MAP_HEIGHT - consts.MARGIN
         self.claiming = False
         self.previous_move = None
-
+        self.incursion_counter = 0
         self.life_force = 10
         # Claimed areas will be rendered via this list
         self.claimed_points = []
@@ -349,21 +349,31 @@ class Enemy:
         for quix in self.quixes:
             quix._next_move()
 
-    def _check_collisions(self, player_coordinate):
-        for qix in self.quixes:
-            if qix.get_coordinate() == player_coordinate:
-                qix_x, qix_y = qix.get_coordinate()
-                if (qix_x != consts.MARGIN and qix_x != ( consts.MAP_WIDTH - consts.MARGIN)) and (qix_y != consts.MARGIN and qix_y != (consts.MAP_HEIGHT - consts.MARGIN)):
-                    qix.collision = True
-            else:
-                qix.collision = False
-
+    def _check_collisions(self, claimed_points, incursion_counter, player_coordinate):
+        # if len(claimed_points) > 0:
+        #     for qix in self.quixes:
+        #         for point in claimed_points[incursion_counter]:
+        #             if [qix.get_coordinate()] == point:
+        #                 qix.collision = True
+        #                 return True
+        #             else:
+        #                 qix.collision = False
         for sparx in self.sparxes:
             if sparx.get_coordinate() == player_coordinate:
                 sparx.collision = True
+                return True
             else:
                 sparx.collision = False
+        return False
 
+    def _respawn(self):
+        for qix in self.quixes:
+            qix.x, qix.y = qix._random_position()
+        
+        for sparx in self.sparxes:
+            sparx.x, sparx.y, sparx.orientation = sparx._random_position()
+            sparx._check_orientation()
+            sparx.change_move = True
 
 class Map:
     """ Main map that renders everything within here """
@@ -402,8 +412,12 @@ class Map:
 
         self.enemy.update()
         self._render_enemy()
-        self.enemy._check_collisions(self.player.get_coordinate())
-        self._update_life()
+
+        if self.enemy._check_collisions(self.player.claimed_points, self.player.incursion_counter, self.player.get_coordinate()):
+            self._update_life(self.player)
+            self._draw_player()
+            #self.enemy.update()
+            self._render_enemy()
         
         # Write the  text
         # Note: This should be rendered at the end to overwrite anything else!
@@ -459,16 +473,21 @@ class Map:
         pygame.draw.line(self.gameDisplay, color, (self.width - margin,
                                                    margin), (self.width - margin, self.height - margin))
 
-    def _update_life(self):
+    def _update_life(self, player):
         for qix in self.enemy.quixes:
             if qix.collision:
                 self.life.update('QIX')
                 qix.collision = False
-        
+                player.reposition()
+                self.enemy._respawn()
+                return
+
         for sparx in self.enemy.sparxes:
             if sparx.collision:
                 self.life.update('SPARX')
                 sparx.collision = False
+                self.enemy._respawn()
+                return
 
 
 def run():
