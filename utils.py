@@ -2,17 +2,53 @@ import consts
 import pygame
 import random
 
+global border_points
+# This global entity should be used to draw borders and restrict movement
+border_points = [
+    (consts.MARGIN, consts.MARGIN),
+    (consts.MAP_DIM - consts.MARGIN, consts.MARGIN),
+    (consts.MAP_DIM - consts.MARGIN, consts.MAP_DIM - consts.MARGIN),
+    (consts.MARGIN, consts.MAP_DIM - consts.MARGIN)]
+
+# Some of the repeated constants:
+fix_x = [consts.MARGIN, consts.MAP_DIM - consts.MARGIN]
+fix_y = [consts.MARGIN, consts.MAP_DIM - consts.MARGIN]
+
+range_x = consts.MARGIN // consts.MOVE_DIM
+range_y = (consts.MAP_DIM - consts.MARGIN) // consts.MOVE_DIM
+
 
 class Point:
     """ Storing Point information """
 
-    def __init__(self, x: int, y: int, prev):
+    def __init__(self, x: int, y: int):
         self.x = x
         self.y = y
-        self.prev = prev
+        self.adj_vertices = []
 
     def get_coordinate(self):
         return (self.x, self.y)
+
+
+class Border:
+    """ Connect points """
+
+    def __init__(self):
+        self.points = []
+
+    def _initiate(self):
+        """ Initiales the  border. """
+        for border_point in border_points:
+            pass
+
+    def _if_adjacent(self, p1: Point, p2: Point):
+        """ Checks to see if two points (vertices) are adjacent
+            Meaning that are they either vertical or horizontal 
+            towards each other.
+
+            Checks to see if either the y or x is the same?
+        """
+        return p1.x == p2.x or p1.y == p2.y
 
 
 class Text:
@@ -25,24 +61,14 @@ class Text:
 
         self.claimed_percentage = 0
 
-    def update(self, collision_type: str):
-        """
-            Updates the lives left after a collision
-
-            Note: Qix and Sparx have different damage levels!
-        """
-        if collision_type == 'Qix':
-            self.life -= consts.QIX_DAMAGE
-        else:
-            self.life -= consts.SPARX_DAMAAGE
-
-        return self.life <= 0
+    def update(self, new_life):
+        self.life = new_life
 
     def add_percentage(self, addittion_value):
         self.claimed_percentage += addittion_value
 
     def get_text(self):
-        space = " " * ( consts.MARGIN // 2)
+        space = " " * (consts.MARGIN // 2)
         return self.font.render(f'{space}Life: {self.life}{space}Claimed Percentage: {self.claimed_percentage}%', True, consts.FONT_COLOR)
 
     def get_coordinate(self):
@@ -57,13 +83,13 @@ class Player:
 
     def __init__(self):
         self.points = []
-        self.x = (consts.MAP_WIDTH - consts.MARGIN) // 2
-        self.y = consts.MAP_HEIGHT - consts.MARGIN
+        self.x = (consts.MAP_DIM - consts.MARGIN) // 2
+        self.y = consts.MAP_DIM - consts.MARGIN
         self.claiming = False
         self.previous_move = None
         self.current_incursion = []
         self.life_force = 10
-    
+
         # Claimed areas will be rendered via this list
         self.claimed_points = []
 
@@ -72,18 +98,18 @@ class Player:
 
     def move(self, move: str):
         """ Controls the movement of the player """
-        if not self.claiming: 
+        if not self.claiming:
             self._claimless_move(move)
         else:
-            if self._opposite_movement(move): 
-                self._coordinate_move(move)    
+            if self._opposite_movement(move):
+                self._coordinate_move(move)
 
     def _opposite_movement(self, move):
         if move == self.previous_move:
             return True
-        elif move == 'left' or move =='right':
+        elif move == 'left' or move == 'right':
             return not (self.previous_move == 'left' or self.previous_move == 'right')
-        elif move == 'up' or move =='down':
+        elif move == 'up' or move == 'down':
             return not (self.previous_move == 'up' or self.previous_move == 'down')
         else:
             return True
@@ -102,13 +128,13 @@ class Player:
             self._move_down()
 
     def _get_orientation(self):
-        if (self.x == consts.MARGIN or self.x == consts.MAP_WIDTH - consts.MARGIN) and (self.y > consts.MARGIN):
+        if (self.x == consts.MARGIN or self.x == consts.MAP_DIM - consts.MARGIN) and (self.y > consts.MARGIN):
             self.orientation = 'vertical'
-        elif (self.y == consts.MARGIN or self.y == consts.MAP_WIDTH - consts.MARGIN) and (self.x > consts.MARGIN):
+        elif (self.y == consts.MARGIN or self.y == consts.MAP_DIM - consts.MARGIN) and (self.x > consts.MARGIN):
             self.orientation = 'horizontal'
         else:
             self.orientation = 'none'
-    
+
     def _claimless_move(self, move):
         """ Handles the movement when player is not claiming areas"""
         self._get_orientation()
@@ -121,7 +147,7 @@ class Player:
             pass
 
     def _move_right(self):
-        if self.x != consts.MAP_WIDTH - consts.MARGIN:
+        if self.x != consts.MAP_DIM - consts.MARGIN:
             self.x += consts.MOVE_DIM
 
     def _move_left(self):
@@ -133,7 +159,7 @@ class Player:
             self.y -= consts.MOVE_DIM
 
     def _move_down(self):
-        if self.y != consts.MAP_HEIGHT - consts.MARGIN:
+        if self.y != consts.MAP_DIM - consts.MARGIN:
             self.y += consts.MOVE_DIM
 
     def reposition(self):
@@ -159,16 +185,20 @@ class Enemy:
 
         def _random_position(self):
             """ Generates a random position for qix """
-            range_x = consts.MARGIN // consts.MOVE_DIM
-            range_y = (consts.MAP_WIDTH - consts.MARGIN) // consts.MOVE_DIM
 
             x = random.randrange(range_x, range_y) * consts.MOVE_DIM
             y = random.randrange(range_x, range_y) * consts.MOVE_DIM
-            
+
             return x, y
 
         def get_coordinate(self):
             return (self.x, self.y)
+
+        def get_mapping(self):
+            return [(self.x, self.y - consts.QIX_DIM),
+                    (self.x + consts.QIX_DIM, self.y),
+                    (self.x, self.y + consts.QIX_DIM),
+                    (self.x - consts.QIX_DIM, self.y)]
 
         def _next_move(self):
             self._possible_moves()
@@ -193,13 +223,17 @@ class Enemy:
             # Getting all the possible
             moves = []
 
-            if self.x != consts.MARGIN - consts.QIX_DIM:
+            if self.x != consts.MARGIN + consts.QIX_DIM:
+                # print(self.x, consts.MARGIN - consts.QIX_DIM)
                 moves.append('left')
-            if self.x != consts.MAP_WIDTH - consts.MARGIN - consts.QIX_DIM:
+            if self.x != consts.MAP_DIM - consts.MARGIN - consts.QIX_DIM:
+                # print(self.x, consts.MAP_DIM - consts.MARGIN - consts.QIX_DIM)
                 moves.append('right')
-            if self.y != consts.MAP_HEIGHT - consts.MARGIN - consts.QIX_DIM:
+            if self.y != consts.MAP_DIM - consts.MARGIN - consts.QIX_DIM:
+                # print(self.y, consts.MAP_DIM - consts.MARGIN + consts.QIX_DIM)
                 moves.append('down')
-            if self.y != consts.MARGIN - consts.QIX_DIM:
+            if self.y != consts.MARGIN + consts.QIX_DIM:
+                # print(self.y, consts.MARGIN + consts.QIX_DIM)
                 moves.append('up')
 
             # Optimize the randomness
@@ -220,7 +254,7 @@ class Enemy:
             # print(self.moves, self.prev_move)
 
         def _move_right(self):
-            if self.x != consts.MAP_WIDTH - consts.MARGIN:
+            if self.x != consts.MAP_DIM - consts.MARGIN:
                 self.x += consts.MOVE_DIM
 
         def _move_left(self):
@@ -232,7 +266,7 @@ class Enemy:
                 self.y -= consts.MOVE_DIM
 
         def _move_down(self):
-            if self.y != consts.MAP_HEIGHT - consts.MARGIN:
+            if self.y != consts.MAP_DIM - consts.MARGIN:
                 self.y += consts.MOVE_DIM
 
     class _Sparx:
@@ -251,13 +285,14 @@ class Enemy:
         def get_orientation(self):
             return self.orientation
 
+        def get_mapping(self):
+            return [(self.x, self.y - consts.SPARX_DIM),
+                    (self.x + consts.SPARX_DIM, self.y),
+                    (self.x, self.y + consts.SPARX_DIM),
+                    (self.x - consts.SPARX_DIM, self.y)]
+
         def _random_position(self) -> (int, int):
             """ Return random positions for sparx """
-            fix_x = [consts.MARGIN, consts.MAP_WIDTH - consts.MARGIN]
-            fix_y = [consts.MARGIN, consts.MAP_HEIGHT - consts.MARGIN]
-
-            range_x = consts.MARGIN // consts.MOVE_DIM
-            range_y = (consts.MAP_WIDTH - consts.MARGIN) // consts.MOVE_DIM
 
             # 0: Vertical
             if random.choice([0, 1]) == 0:
@@ -292,36 +327,36 @@ class Enemy:
                 # Base cases: 4 points of the rectangle
                 if self.x == consts.MARGIN and self.y == consts.MARGIN:
                     self.move = random.choice(['right', 'down'])
-                if self.x == consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN:
+                if self.x == consts.MARGIN and self.y == consts.MAP_DIM - consts.MARGIN:
                     self.move = random.choice(['right', 'up'])
-                if self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MARGIN:
+                if self.x == consts.MAP_DIM - consts.MARGIN and self.y == consts.MARGIN:
                     self.move = random.choice(['left', 'down'])
-                if self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN:
+                if self.x == consts.MAP_DIM - consts.MARGIN and self.y == consts.MAP_DIM - consts.MARGIN:
                     self.move = random.choice(['left', 'up'])
 
                 # 4 ranges
-                if self.x == consts.MARGIN and self.y > consts.MARGIN or self.x == consts.MAP_WIDTH - consts.MARGIN and self.y > consts.MARGIN:
+                if self.x == consts.MARGIN and self.y > consts.MARGIN or self.x == consts.MAP_DIM - consts.MARGIN and self.y > consts.MARGIN:
                     self.move = random.choice(["down", "up"])
-                if self.x > consts.MARGIN and self.y == consts.MARGIN or self.x > consts.MARGIN and self.y == consts.MAP_HEIGHT - consts.MARGIN:
+                if self.x > consts.MARGIN and self.y == consts.MARGIN or self.x > consts.MARGIN and self.y == consts.MAP_DIM - consts.MARGIN:
                     self.move = random.choice(["right", "left"])
             elif self.orientation == 'vertical':
-                if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MARGIN):
+                if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (self.x == consts.MAP_DIM - consts.MARGIN and self.y == consts.MARGIN):
                     self.move = "down"
                 else:
                     self.move = 'up'
             else:
-                if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (self.x == consts.MARGIN and self.y == consts.MAP_WIDTH - consts.MARGIN):
+                if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (self.x == consts.MARGIN and self.y == consts.MAP_DIM - consts.MARGIN):
                     self.move = "right"
                 else:
                     self.move = 'left'
 
         def _check_orientation(self):
             if self.orientation == 'vertical':
-                if self.y == consts.MARGIN or self.y == consts.MAP_HEIGHT - consts.MARGIN:
+                if self.y == consts.MARGIN or self.y == consts.MAP_DIM - consts.MARGIN:
                     self.orientation = 'horizontal'
                     self.change_move = True
             else:
-                if self.x == consts.MARGIN or self.x == consts.MAP_HEIGHT - consts.MARGIN:
+                if self.x == consts.MARGIN or self.x == consts.MAP_DIM - consts.MARGIN:
                     self.orientation = 'vertical'
                     self.change_move = True
 
@@ -380,22 +415,28 @@ class Enemy:
                 return True
             else:
                 sparx.collision = False
-        
+
         return False
 
     def _respawn(self):
         for qix in self.quixes:
             qix.x, qix.y = qix._random_position()
-        
+
         for sparx in self.sparxes:
             sparx.x, sparx.y, sparx.orientation = sparx._random_position()
             sparx._check_orientation()
             sparx.change_move = True
 
-class Map:
-    """ Main map that renders everything within here """
 
-    def __init__(self, height: int = consts.MAP_HEIGHT, width: int = consts.MAP_WIDTH, margin: int = consts.MARGIN):
+class Collision:
+    """ Handles collisions """
+    pass
+
+
+class Map:
+    """ Main map that renders graphics """
+
+    def __init__(self, height: int = consts.MAP_DIM, width: int = consts.MAP_DIM, margin: int = consts.MARGIN):
         self.width = width
         self.height = height
 
@@ -403,13 +444,6 @@ class Map:
         pygame.init()
 
         self.text = Text()
-
-
-
-        self.border_points = [(margin, margin), 
-                              (self.width - margin, margin), 
-                              (self.width - margin, self.height - margin), 
-                              (margin, self.width - margin)]
 
         # Set the properties of the Display
         self.gameDisplay = pygame.display.set_mode((self.height, self.width))
@@ -422,9 +456,10 @@ class Map:
 
         self.enemy = Enemy()
 
-    def render(self):
-        """ Renders the graphics """
+    def start_claiming(self):
+        self.player.claiming = True
 
+    def render(self):
         self.gameDisplay.fill(consts.BG_COLOR)
 
         # Draw the borders
@@ -439,7 +474,7 @@ class Map:
 
         if self.enemy._check_collisions(self.player):
             self._handle_collision(self.player)
-        
+
         # Write the  text
         # Note: This should be rendered at the end to overwrite anything else!
         self.gameDisplay.blit(self.text.get_text(), self.text.get_coordinate())
@@ -458,20 +493,14 @@ class Map:
             self._draw_qix(quix)
 
     def _draw_sparx(self, sparx: Enemy._Sparx, color=consts.SPARX_COLOR):
-        x, y = sparx.get_coordinate()
-
         pygame.draw.polygon(self.gameDisplay,
                             color,
-                            [(x, y - consts.SPARX_DIM), (x + consts.SPARX_DIM, y),
-                             (x, y + consts.SPARX_DIM), (x - consts.SPARX_DIM, y)])
+                            sparx.get_mapping())
 
     def _draw_qix(self, quix: Enemy._Qix, color=consts.QIX_COLOR):
-        x, y = quix.get_coordinate()
-
         pygame.draw.polygon(self.gameDisplay,
                             consts.QIX_COLOR,
-                            [(x, y - consts.QIX_DIM), (x + consts.QIX_DIM, y),
-                             (x, y + consts.QIX_DIM), (x - consts.QIX_DIM, y)])
+                            quix.get_mapping())
 
     def _draw_clamied_areas(self):
         pass
@@ -502,7 +531,7 @@ class Map:
     def _update_life(self, player):
         for qix in self.enemy.quixes:
             if qix.collision:
-                self.life.update('Qix')
+                self.text.update('Qix')
                 qix.collision = False
                 player.reposition()
                 self.enemy._respawn()
@@ -510,7 +539,7 @@ class Map:
 
         for sparx in self.enemy.sparxes:
             if sparx.collision:
-                self.life.update('Sparx')
+                self.text.update('Sparx')
                 sparx.collision = False
                 self.enemy._respawn()
                 return
@@ -535,7 +564,7 @@ def run():
 
                 # Starting to claim territory
                 if event.key == pygame.K_SPACE:
-                    map.player.claiming = True
+                    map.start_claiming()
 
                 # Pausing
                 if event.key == pygame.K_p:
