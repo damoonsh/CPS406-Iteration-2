@@ -64,11 +64,12 @@ class Player:
         self.incursion_starting_point = None
         self.incursion_conditions_met = False
         self.previous_move = None
-        self.life_force = 10
         self.claimed_area = 0
+        self.current_incursion = []
+        self.life_force = 10
         # Claimed areas will be rendered via this list
         self.claimed_points = []
-        self.current_incursion = []
+
 
 
     def get_coordinate(self):
