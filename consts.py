@@ -30,4 +30,4 @@ QIX_DAMAGE = 1
 SPARX_DAMAAGE = 2
 
 # Frames Per second
-FPS = 16
+FPS = 3

@@ -1,6 +1,7 @@
 import consts
 import pygame
 import random
+import time
 
 global border_points
 # This global entity should be used to draw borders and restrict movement
@@ -25,6 +26,7 @@ class Point:
         self.x = x
         self.y = y
         self.adj_vertices = []
+        self.direction_change = False
 
     def get_coordinate(self):
         return (self.x, self.y)
@@ -41,23 +43,27 @@ class Border:
         """ Initiales the  border. """
         for point1 in border_points:
             
-            point = Point(point1[0], point1[0])
+            point = Point(point1[0], point1[1])
 
             for point2 in border_points:
-                if point1 != point2:
-                    if self._if_adjacent(point1, point2):
-                        point.adj_vertices.append((point2[0], point2[1]))
-
+                if self._if_adjacent(point1, point2):
+                    point.adj_vertices.append((point2[0], point2[1]))
+                    
             self.points.append(point)
 
     def _if_adjacent(self, p1: Point, p2: Point):
         """ Checks to see if two points (vertices) are adjacent
-            Meaning that are they either vertical or horizontal 
+            Meaning that they are either vertical or horizontal 
             towards each other.
 
             Checks to see if either the y or x is the same?
+            Also, it should not be the same point.
         """
-        return p1[0] == p2[0] or p1[1] == p2[1]
+        return (p1[0] == p2[0] or p1[1] == p2[1]) and not (p1[0] == p2[0] and p1[1] == p2[1])
+
+    def on_border(self, x, y):
+        """ Checks to see if a given point is on the border or not. """
+        pass
 
 
 class Text:
@@ -91,18 +97,15 @@ class Player:
         Player Object that implements the logic of the
         player moving in the map.
     """
-
     def __init__(self):
-
         self.points = []
         self.x = (consts.MAP_DIM - consts.MARGIN) // 2
         self.y = consts.MAP_DIM - consts.MARGIN
         self.claiming = False
-        self.incursion_starting_point = None
-        self.incursion_conditions_met = 0
         self.previous_move = None
-        self.claimed_area = 0
         self.life_force = 10
+
+        self._left_border = False
 
         # Claimed areas will be rendered via this list
         self.claimed_points = []
@@ -111,103 +114,14 @@ class Player:
     def get_coordinate(self):
         return (self.x, self.y)
 
-    def add_incursion_point(self):
-        x, y = self.get_coordinate()
-        self.current_incursion.append([x, y])
-
-    def get_total_claim_percentage(self):
-        percentage_covered = round((self.claimed_area / consts.MAP_AREA) * 100.0)
-        return percentage_covered
-
-    def print_claimed_percentage(self):
-        percentage = self.get_total_claim_percentage()
-        print('Player has claimed: ' + str(percentage) + '%')
-
-    def get_incursion_dimensions(self, a_list=None):
-        if not a_list:
-            width, height = find_displacement_in_list(self.current_incursion)
-            width = abs(width)
-            height = abs(height)
-            return width, height
-        else:
-            width, height = find_displacement_in_list(a_list)
-            width = abs(width)
-            height = abs(height)
-            return width, height
-
-    def update_total_claimed_area(self):
-        width, height = self.get_incursion_dimensions()
-        self.claimed_area += width * height
-        self.print_claimed_percentage()
-
-    def update_total_claimed_area_qix_inside(self, boundary_list):
-        width, height = find_displacement_in_list(boundary_list)
-        self.claimed_area = 0
-        self.claimed_area = consts.MAP_AREA - (width * height)
-        self.print_claimed_percentage()
-
-    def finish_incursion(self):
-        self.update_total_claimed_area()
-        self.claimed_points.append(self.current_incursion)
-        self.incursion_starting_point = None
-        self.current_incursion = []
-        self.claiming = False
-        self.incursion_conditions_met = 0
-
-    def fail_incursion(self):
-        self.incursion_starting_point = None
-        self.current_incursion = []
-        self.claiming = False
-        self.incursion_conditions_met = 0
-
-    def is_claimed_point(self, x, y):
-        i = 0
-        while i < len(self.claimed_points):
-            for point in self.claimed_points[i]:
-                if point:
-                    if point[0] == x and point[1] == y:
-                        return True
-                i += 1
-
-        return False
-
-    def offset(self, iterable):
-        prev = None
-        for elem in iterable:
-            yield prev, elem
-            prev = elem
-
-    def margin_collision(self):
-        if self.previous_move == 'left' and self.x == consts.MARGIN:
-            return True
-        elif self.previous_move == 'right' and self.x == consts.MAP_DIM - consts.MARGIN:
-            return True
-        elif self.previous_move == 'up' and self.y == consts.MARGIN:
-            return True
-        elif self.previous_move == 'down' and self.y == consts.MAP_DIM - consts.MARGIN:
-            return True
-        else:
-            return False
-
-    def _change_in_incursion_direction(self, move):
-        if (self.previous_move == 'up' or self.previous_move == 'down') and (move == 'right' or move == 'left') \
-                and self.claiming:
-            self.incursion_conditions_met += 1
-        elif (self.previous_move == 'right' or self.previous_move == 'left') and (move == 'up' or move == 'down') \
-                and self.claiming:
-            self.incursion_conditions_met += 1
-        else:
-            pass
-
     def move(self, move: str):
         """ Controls the movement of the player """
-
-        if self.claiming:
-            self._claim_move(move)
-        if not self.claiming:
-            self._claimless_move(move)
-        else:
+        self._leave_border(move)
+        
+        if self.claiming and self._left_border:
             if self._opposite_movement(move): self._coordinate_move(move)
+        else:
+            self._claimless_move(move)
 
     def _opposite_movement(self, move):
         if move == self.previous_move:
@@ -219,20 +133,27 @@ class Player:
         else:
             return True
 
+    def _leave_border(self, move):
+        if self._left_border:
+            pass
+        else:
+            self._get_orientation()
+
+            if self.orientation == 'vertical' and (move == "right" or move == "left"):
+                self._left_border = True
+            elif self.orientation != 'vertical' and (move == "down" or move == "up"):
+                self._left_border = True
+            else:
+                self._left_border = False
+
     def _coordinate_move(self, move):
+
+        if self.previous_move != move: 
+            self.points.append((self.x, self.y))
+            print(self.points)
 
         self.previous_move = move
 
-        if move == 'right':
-            self._move_right()
-        if move == 'left':
-            self._move_left()
-        if move == 'up':
-            self._move_up()
-        if move == 'down':
-            self._move_down()
-
-    def _simple_move(self, move):
         if move == 'right':
             self._move_right()
         if move == 'left':
@@ -261,58 +182,21 @@ class Player:
         else:
             pass
 
-    def _claim_move(self, move):
-        """ Handles movement when player is claiming areas """
-        if not self.current_incursion:
-            self.incursion_starting_point = self.get_coordinate()
-            self.add_incursion_point()
-            self.previous_move = None
-
-        if not self._opposite_movement(move):
-            pass
-        else:
-            self._simple_move(move)
-            self._change_in_incursion_direction(move)
-            self.add_incursion_point()
-            self.previous_move = move
-
-            if self.margin_collision() and self.incursion_conditions_met == 1:
-                self.finish_incursion()
-            elif self.margin_collision() and not (self.incursion_conditions_met == 1):
-                self.fail_incursion()
-
-
     def _move_right(self):
         if self.x != consts.MAP_DIM - consts.MARGIN:
             self.x += consts.MOVE_DIM
-        # elif self.is_claimed_point(self.x + consts.MOVE_DIM, self.y):
-        #     self.x += consts.MOVE_DIM
 
     def _move_left(self):
         if self.x != consts.MARGIN:
             self.x -= consts.MOVE_DIM
-        # elif self.is_claimed_point(self.x - consts.MOVE_DIM, self.y):
-        #     self.x -= consts.MOVE_DIM
 
     def _move_up(self):
         if self.y != consts.MARGIN:
             self.y -= consts.MOVE_DIM
-        # elif self.is_claimed_point(self.x, self.y - consts.MOVE_DIM):
-        #     self.y -= consts.MOVE_DIM
 
     def _move_down(self):
         if self.y != consts.MAP_DIM - consts.MARGIN:
             self.y += consts.MOVE_DIM
-        # elif self.is_claimed_point(self.x, self.y + consts.MOVE_DIM):
-        #     self.y += consts.MOVE_DIM
-
-    def reposition(self):
-        # set player back to start of incursion
-        start = self.current_incursion[0]
-        self.current_incursion = []
-        self.x = start[0]
-        self.y = start[1]
-        self.claiming = False
 
 
 class Enemy:
@@ -369,16 +253,12 @@ class Enemy:
             moves = []
 
             if self.x != consts.MARGIN + consts.QIX_DIM:
-                # print(self.x, consts.MARGIN - consts.QIX_DIM)
                 moves.append('left')
             if self.x != consts.MAP_DIM - consts.MARGIN - consts.QIX_DIM:
-                # print(self.x, consts.MAP_DIM - consts.MARGIN - consts.QIX_DIM)
                 moves.append('right')
             if self.y != consts.MAP_DIM - consts.MARGIN - consts.QIX_DIM:
-                # print(self.y, consts.MAP_DIM - consts.MARGIN + consts.QIX_DIM)
                 moves.append('down')
             if self.y != consts.MARGIN + consts.QIX_DIM:
-                # print(self.y, consts.MARGIN + consts.QIX_DIM)
                 moves.append('up')
 
             # Optimize the randomness
@@ -421,7 +301,6 @@ class Enemy:
             self.move = None  # up, down, left, right of the grid
             self.x, self.y, self.orientation = self._random_position()
             self.change_move = False
-            # print(self.x, self.y, self.orientation)
             self.collision = None
 
         def get_coordinate(self) -> (int, int):
@@ -526,6 +405,8 @@ class Enemy:
         self.sparxes = []
         self.init = True
 
+        self.t1 = time.time()
+
     def _add_sparx(self):
         self.sparxes.append(Enemy._Sparx())
 
@@ -539,6 +420,9 @@ class Enemy:
             self.init = False
 
         self._fetch_next_moves()
+
+        # After some time add a Sparx
+        if 9.6 < time.time() - self.t1 < 10: self._add_sparx()
 
     def _fetch_next_moves(self):
         for sparx in self.sparxes:
@@ -583,120 +467,30 @@ class Enemy:
 
 class Collision:
     """ Handles collisions """
-    pass
-
-
-def get_last_outer_point(points_list):
-    """ Gets 2 points to make a straight line down """
-    i = 0
-    start_point = points_list[i]
-    width_of_incursion = points_list[-1][0] - start_point[0]
-    end_point = None
-    for point_a, point_b in points_list:
-        if point_a and point_b:
-            if point_a[0] == point_b[0] and point_a[1] + consts.MOVE_DIM == point_b[1]:
-                end_point = point_b
-            elif point_a[0] == point_b[0] and point_a[1] - consts.MOVE_DIM == point_b[1]:
-                end_point = point_b
-            else:
-                end_point = point_a
-
-    return True
-
-
-def get_head_and_tail(a_list):
-    head = a_list[0]
-    tail = a_list[-1]
-    return head, tail
-
-
-def find_displacement_in_list(points_list):
-    """ Given a list of points, finds the x and y displacement """
-    head, tail = get_head_and_tail(points_list)
-    x_displacement = tail[0] - head[0]
-    y_displacement = tail[1] - head[1]
-    return x_displacement, y_displacement
-
-
-def _determine_qix_direction(qix: Enemy._Qix, claimed_list):
-    """ Returns the direction of the Qix relative to the incursion made by the player """
-    qix_coordinates = qix.get_coordinate()
-    direction = None
-    if _is_qix_above_claimed_area(qix_coordinates, claimed_list):
-        direction = "above"
-    elif _is_qix_below_claimed_area(qix_coordinates, claimed_list):
-        direction = "below"
-    elif _is_qix_right_claimed_area(qix_coordinates, claimed_list):
-        direction = "right"
-    elif _is_qix_left_claimed_area(qix_coordinates, claimed_list):
-        direction = "left"
-    else:
-        # None means that the Qix is inside the rectangle.
-        direction = "none"
-
-    return direction
-
-
-def _is_qix_below_claimed_area(qix_coordinates, points_list):
-    """ Returns true if the Qix is below all the points in the incursion """
-    for point in points_list:
-        if point[1] > qix_coordinates[1]:
-            return False
-
-    return True
-
-
-def _is_qix_above_claimed_area(qix_coordinates, points_list):
-    """ Returns true if the Qix is above all the points in the incursion """
-    for point in points_list:
-        if point[1] < qix_coordinates[1]:
-            return False
-
-    return True
-
-
-def _is_qix_right_claimed_area(qix_coordinates, points_list):
-    """ Returns true if the Qix is to the right all the points in the incursion """
-    for point in points_list:
-        if point[0] > qix_coordinates[0]:
-            return False
-
-    return True
-
-
-def _is_qix_left_claimed_area(qix_coordinates, points_list):
-    """ Returns true if the Qix is to the left all the points in the incursion """
-    for point in points_list:
-        if point[0] < qix_coordinates[0]:
-            return False
-
-    return True
-
+    def __init__(self, player: Player, quixes: [Enemy._Qix], sparxes: [Enemy._Sparx]):
+        self.player = player
+        self.quixes = quixes
+        self.sparxes = sparxes
 
 class Map:
     """ Main map that renders graphics """
 
     def __init__(self, height: int = consts.MAP_DIM, width: int = consts.MAP_DIM, margin: int = consts.MARGIN):
-        self.width = width
-        self.height = height
+        # Set the dimension of the square
+        self.dim = width
 
-        # Initialize the pygame module
-        pygame.init()
+        pygame.init()  # Initialize the pygame module
+        self.text = Text() # Text of the game
+        self.border = Border() # The dynamic Bordering
+        self.player = Player() # The player Object
+        self.enemy = Enemy() # The enmy object
 
-        self.text = Text()
-
-        self.border = Border()
-
-        # Set the properties of the Display
-        self.gameDisplay = pygame.display.set_mode((self.height, self.width))
+        # Set the properties of the game Display
+        self.gameDisplay = pygame.display.set_mode((self.dim, self.dim))
         self.gameDisplay.fill(consts.BG_COLOR)
 
         # Setting the caption
         pygame.display.set_caption('QIX')
-
-        self.player = Player()
-
-        self.enemy = Enemy()
 
     def start_claiming(self):
         self.player.claiming = True
@@ -708,8 +502,6 @@ class Map:
         self._draw_borders()
 
         # Draw the player and the claimed areas
-        self._draw_player_claimed_areas()
-        self._draw_current_incursion()
         self._draw_player()
 
         self.enemy.update()
@@ -745,84 +537,6 @@ class Map:
                             consts.QIX_COLOR,
                             quix.get_mapping())
 
-    def _fill_normal(self, points_list):
-        x_displacement, y_displacement = find_displacement_in_list(points_list)
-        points_start, points_end = get_head_and_tail(points_list)
-        rectangle_width, rectangle_height = self.player.get_incursion_dimensions(points_list)
-        if x_displacement < 0 and y_displacement < 0:
-            """ Moved left and up to create the rectangle """
-            rectangle = pygame.Rect(points_end[0], points_end[1], rectangle_width, rectangle_height)
-        elif x_displacement > 0 and y_displacement < 0:
-            """ Moved right and up to create the rectangle """
-            rectangle = pygame.Rect(points_start[0], points_start[1] - rectangle_height, rectangle_width, rectangle_height)
-        elif x_displacement < 0 and y_displacement > 0:
-            """ Moved left and down to create the rectangle """
-            rectangle = pygame.Rect(points_end[0], points_end[1] - rectangle_height, rectangle_width, rectangle_height)
-        else:
-            """ Moved right and down to create the rectangle """
-            rectangle = pygame.Rect(points_start[0], points_start[1], rectangle_width, rectangle_height)
-
-        pygame.draw.rect(self.gameDisplay, consts.CLAIMED_AREA_COLOR, rectangle)
-        pygame.draw.rect(self.gameDisplay, consts.BORDER_COLOR, rectangle, 1)
-
-    def _fill_all_else(self, points_list):
-        x_displacement, y_displacement = find_displacement_in_list(points_list)
-        points_start, points_end = get_head_and_tail(points_list)
-        rectangle_width, rectangle_height = self.player.get_incursion_dimensions(points_list)
-        rectangle_map_area = pygame.Rect(consts.MARGIN, consts.MARGIN, 380, 380)
-        if x_displacement < 0 and y_displacement < 0:
-            """ Moved left and up to create the rectangle """
-            rectangle = pygame.Rect(points_end[0], points_end[1], rectangle_width, rectangle_height)
-        elif x_displacement > 0 and y_displacement < 0:
-            """ Moved right and up to create the rectangle """
-            rectangle = pygame.Rect(points_start[0], points_start[1] - rectangle_height, rectangle_width,
-                                    rectangle_height)
-        elif x_displacement < 0 and y_displacement > 0:
-            """ Moved left and down to create the rectangle """
-            rectangle = pygame.Rect(points_end[0], points_end[1] - rectangle_height, rectangle_width, rectangle_height)
-        else:
-            """ Moved right and down to create the rectangle """
-            rectangle = pygame.Rect(points_start[0], points_start[1], rectangle_width, rectangle_height)
-
-        pygame.draw.rect(self.gameDisplay, consts.CLAIMED_AREA_COLOR, rectangle_map_area)
-        pygame.draw.rect(self.gameDisplay, consts.BORDER_COLOR, rectangle_map_area, 1)
-        pygame.draw.rect(self.gameDisplay, consts.BG_COLOR, rectangle)
-        pygame.draw.rect(self.gameDisplay, consts.BORDER_COLOR, rectangle, 1)
-
-    def _fill_player_claimed_areas(self, current_claim_segment):
-        """ Fill the player claimed area relative to the qix's location """
-        qix_direction = _determine_qix_direction(self.enemy.quixes[0], current_claim_segment)
-        if qix_direction == "none":
-            self._fill_all_else(current_claim_segment)
-            self.player.update_total_claimed_area_qix_inside(current_claim_segment)
-        else:
-            self._fill_normal(current_claim_segment)
-
-    def _draw_player_claimed_borders(self, current_claim_segment):
-        for point_a, point_b in self.player.offset(current_claim_segment):
-            if point_a and point_b:
-                pygame.draw.line(self.gameDisplay, consts.BORDER_COLOR, (point_a[0], point_a[1]),
-                                 (point_b[0], point_b[1]), 1)
-
-    def _draw_player_claimed_areas(self):
-        i = 0
-        while i < len(self.player.claimed_points):
-            if self.player.claimed_points[i]:
-                current_points_list = self.player.claimed_points[i]
-                self._draw_player_claimed_borders(current_points_list)
-                self._fill_player_claimed_areas(current_points_list)
-            i += 1
-
-    def _draw_current_incursion(self):
-        for point_a, point_b in self.player.offset(self.player.current_incursion):
-            if point_a and point_b:
-                if not (self.player.incursion_conditions_met == 1):
-                    pygame.draw.line(self.gameDisplay, consts.INCURSION_BAD_COLOR, (point_a[0], point_a[1]),
-                                     (point_b[0], point_b[1]), 1)
-                else:
-                    pygame.draw.line(self.gameDisplay, consts.INCURSION_GOOD_COLOR, (point_a[0], point_a[1]),
-                                     (point_b[0], point_b[1]), 1)
-
     def _draw_player(self):
         """ Draws the player """
         pygame.draw.circle(self.gameDisplay,
@@ -832,29 +546,12 @@ class Map:
 
     def _draw_borders(self, margin: int = consts.MARGIN, color: (int, int, int) = consts.BORDER_COLOR):
         """ Draws the border for the QIX game """
-
         for point in self.border.points:
             start_point = point.get_coordinate()
-            if not self.player.claiming: print(f'{start_point}')
-            for adj_vertice in point.adj_vertices:
-                if not self.player.claiming: print(adj_vertice, end='')    
+            for adj_vertex in point.adj_vertices:
                 pygame.draw.line(self.gameDisplay, 
                                 color,
-                                start_point, adj_vertice)
-
-        # # Upper Horizontal Line
-        # pygame.draw.line(self.gameDisplay, color,
-        #                  (margin, margin), (self.width - margin, margin))
-
-        # # Lower Horizontal Line
-        # pygame.draw.line(self.gameDisplay, color, (margin, self.height -
-        #                                            margin), (self.width - margin, self.height - margin))
-        # # Left Vertical Line
-        # pygame.draw.line(self.gameDisplay, color,
-        #                  (margin, margin), (margin, self.height - margin))
-        # # Right Vertical Line
-        # pygame.draw.line(self.gameDisplay, color, (self.width - margin,
-        #                                            margin), (self.width - margin, self.height - margin))
+                                start_point, adj_vertex)
 
     def _update_life(self, player):
         for qix in self.enemy.quixes:
