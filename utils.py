@@ -171,11 +171,11 @@ class Player:
     def margin_collision(self):
         if self.previous_move == 'left' and self.x == consts.MARGIN:
             return True
-        elif self.previous_move == 'right' and self.x == consts.MAP_WIDTH - consts.MARGIN:
+        elif self.previous_move == 'right' and self.x == consts.MAP_DIM - consts.MARGIN:
             return True
         elif self.previous_move == 'up' and self.y == consts.MARGIN:
             return True
-        elif self.previous_move == 'down' and self.y == consts.MAP_HEIGHT - consts.MARGIN:
+        elif self.previous_move == 'down' and self.y == consts.MAP_DIM - consts.MARGIN:
             return True
         else:
             return False
@@ -477,14 +477,14 @@ class Enemy:
                     self.move = random.choice(["right", "left"])
             elif self.orientation == 'vertical':
                 if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (
-                        self.x == consts.MAP_WIDTH - consts.MARGIN and self.y == consts.MARGIN):
+                        self.x == consts.MAP_DIM - consts.MARGIN and self.y == consts.MARGIN):
 
                     self.move = "down"
                 else:
                     self.move = 'up'
             else:
                 if (self.x == consts.MARGIN and self.y == consts.MARGIN) or (
-                        self.x == consts.MARGIN and self.y == consts.MAP_WIDTH - consts.MARGIN):
+                        self.x == consts.MARGIN and self.y == consts.MAP_DIM - consts.MARGIN):
 
                     self.move = "right"
                 else:
