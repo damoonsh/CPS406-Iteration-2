@@ -16,8 +16,7 @@ FONT_SIZE = 20
 # Constants used in the Game
 PLAYER_RADIUS = QIX_DIM = SPARX_DIM = 10
 MARGIN = 20
-MAP_WIDTH = 420
-MAP_HEIGHT = 420
+MAP_DIM = 420
 MOVE_DIM = PLAYER_RADIUS
 
 # Constants related to life
@@ -26,4 +25,5 @@ INIT_COOR = (5, 2)
 QIX_DAMAGE = 1
 SPARX_DAMAAGE = 2
 
-FPS = 3
+# Frames Per second
+FPS = 16
