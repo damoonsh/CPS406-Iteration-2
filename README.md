@@ -2,7 +2,6 @@
 
 Note:
 
-- Instead of North, West, East, South: Up, Left, Right, Down
 - The Map object will only be rendering the graphics.
 - The logic aspect of things should be implemented in other objects.
 - Qix and Sparx should not collide with each other.
@@ -16,13 +15,22 @@ Note:
         - For each Orientation the movement will differ.
     2. _Qix:
         - Randomly initialized in a coordinate where it is a division of 5. Otherwise, it will go out of the border
+2. Map:
+    - Will give other objects ability to communicate with each other within the object.
+    - Checks for collisions and handle the lifetime of the player.
+
+link to the [game](https://playclassic.games/games/action-dos-games-online/play-qix-online/)
 
 To implement:
 
+- Dynamic bordering:
+    - The player will first enter the area using the space bar.
+    - When the space bar is not hit, the player will only move horizontally or vertically (run the code).
+    - After entering the area, the player will not be able to make opposite moves (cannot do a left after a right or an up after a down).
+    - An incursion area will be achieved when the start point and end point is on a border. (Note: The start is obviously on a border)
+    - Task: Dynamicly change the borderings so all the new claimed areas are included.
 - Drawing the claimed parts / Percentage (Ahnaf)
-- Logic of Enemy (Quix and Sparx) (Damoon, Angelo, Ramneek)
 - Check for the space bar being pressed (first time) (Angelo)
 - Writting tests (Damoon)
 - Modify User stories (Angelo)
 - Test Diagrams (Damoon, Angelo)
-- Life (Damoon)
