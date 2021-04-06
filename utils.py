@@ -57,20 +57,19 @@ class Player:
     """
 
     def __init__(self):
+
         self.points = []
         self.x = (consts.MAP_WIDTH - consts.MARGIN) // 2
         self.y = consts.MAP_HEIGHT - consts.MARGIN
         self.claiming = False
         self.incursion_starting_point = None
-        self.incursion_conditions_met = False
+        self.incursion_conditions_met = 0
         self.previous_move = None
         self.claimed_area = 0
-        self.current_incursion = []
         self.life_force = 10
         # Claimed areas will be rendered via this list
         self.claimed_points = []
-
-
+        self.current_incursion = []
 
     def get_coordinate(self):
         return (self.x, self.y)
@@ -116,13 +115,13 @@ class Player:
         self.incursion_starting_point = None
         self.current_incursion = []
         self.claiming = False
-        self.incursion_conditions_met = False
+        self.incursion_conditions_met = 0
 
     def fail_incursion(self):
         self.incursion_starting_point = None
         self.current_incursion = []
         self.claiming = False
-        self.incursion_conditions_met = False
+        self.incursion_conditions_met = 0
 
     def is_claimed_point(self, x, y):
         i = 0
@@ -156,10 +155,10 @@ class Player:
     def _change_in_incursion_direction(self, move):
         if (self.previous_move == 'up' or self.previous_move == 'down') and (move == 'right' or move == 'left') \
                 and self.claiming:
-            self.incursion_conditions_met = True
+            self.incursion_conditions_met += 1
         elif (self.previous_move == 'right' or self.previous_move == 'left') and (move == 'up' or move == 'down') \
                 and self.claiming:
-            self.incursion_conditions_met = True
+            self.incursion_conditions_met += 1
         else:
             pass
 
@@ -239,9 +238,9 @@ class Player:
             self.add_incursion_point()
             self.previous_move = move
 
-            if self.margin_collision() and self.incursion_conditions_met:
+            if self.margin_collision() and self.incursion_conditions_met == 1:
                 self.finish_incursion()
-            elif self.margin_collision() and not self.incursion_conditions_met:
+            elif self.margin_collision() and not (self.incursion_conditions_met == 1):
                 self.fail_incursion()
 
 
@@ -544,7 +543,7 @@ def _determine_qix_direction(qix: Enemy._Qix, claimed_list):
 def _is_qix_below_claimed_area(qix_coordinates, points_list):
     """ Returns true if the Qix is below all the points in the incursion """
     for point in points_list:
-        if point[1] >= qix_coordinates[1]:
+        if point[1] > qix_coordinates[1]:
             return False
 
     return True
@@ -553,7 +552,7 @@ def _is_qix_below_claimed_area(qix_coordinates, points_list):
 def _is_qix_above_claimed_area(qix_coordinates, points_list):
     """ Returns true if the Qix is above all the points in the incursion """
     for point in points_list:
-        if point[1] <= qix_coordinates[1]:
+        if point[1] < qix_coordinates[1]:
             return False
 
     return True
@@ -562,7 +561,7 @@ def _is_qix_above_claimed_area(qix_coordinates, points_list):
 def _is_qix_right_claimed_area(qix_coordinates, points_list):
     """ Returns true if the Qix is to the right all the points in the incursion """
     for point in points_list:
-        if point[0] >= qix_coordinates[0]:
+        if point[0] > qix_coordinates[0]:
             return False
 
     return True
@@ -571,7 +570,7 @@ def _is_qix_right_claimed_area(qix_coordinates, points_list):
 def _is_qix_left_claimed_area(qix_coordinates, points_list):
     """ Returns true if the Qix is to the left all the points in the incursion """
     for point in points_list:
-        if point[0] <= qix_coordinates[0]:
+        if point[0] < qix_coordinates[0]:
             return False
 
     return True
@@ -715,7 +714,7 @@ class Map:
     def _draw_current_incursion(self):
         for point_a, point_b in self.player.offset(self.player.current_incursion):
             if point_a and point_b:
-                if not self.player.incursion_conditions_met:
+                if not (self.player.incursion_conditions_met == 1):
                     pygame.draw.line(self.gameDisplay, consts.INCURSION_BAD_COLOR, (point_a[0], point_a[1]),
                                      (point_b[0], point_b[1]), 1)
                 else:
