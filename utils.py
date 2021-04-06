@@ -74,7 +74,8 @@ class Player:
         if not self.claiming: 
             self._claimless_move(move)
         else:
-            if self._opposite_movement(move): self._coordinate_move(move)    
+            if self._opposite_movement(move): 
+                self._coordinate_move(move)    
 
     def _opposite_movement(self, move):
         if move == self.previous_move:
@@ -182,13 +183,13 @@ class Enemy:
             # Getting all the possible
             moves = []
 
-            if self.x != consts.MARGIN:
+            if self.x != consts.MARGIN - consts.QIX_DIM:
                 moves.append('left')
-            if self.x != consts.MAP_WIDTH - consts.MARGIN:
+            if self.x != consts.MAP_WIDTH - consts.MARGIN - consts.QIX_DIM:
                 moves.append('right')
-            if self.y != consts.MAP_HEIGHT - consts.MARGIN:
+            if self.y != consts.MAP_HEIGHT - consts.MARGIN - consts.QIX_DIM:
                 moves.append('down')
-            if self.y != consts.MARGIN:
+            if self.y != consts.MARGIN - consts.QIX_DIM:
                 moves.append('up')
 
             # Optimize the randomness
@@ -351,14 +352,21 @@ class Enemy:
 class Map:
     """ Main map that renders everything within here """
 
-    def __init__(self, height: int = consts.MAP_HEIGHT, width: int = consts.MAP_WIDTH):
+    def __init__(self, height: int = consts.MAP_HEIGHT, width: int = consts.MAP_WIDTH, margin: int = consts.MARGIN):
         self.width = width
         self.height = height
 
         # Initialize the pygame module
         pygame.init()
 
-        self.life = Text()
+        self.text = Text()
+
+
+
+        self.border_points = [(margin, margin), 
+                              (self.width - margin, margin), 
+                              (self.width - margin, self.height - margin), 
+                              (margin, self.width - margin)]
 
         # Set the properties of the Display
         self.gameDisplay = pygame.display.set_mode((self.height, self.width))
@@ -388,7 +396,7 @@ class Map:
 
         # Write the  text
         # Note: This should be rendered at the end to overwrite anything else!
-        self.gameDisplay.blit(self.life.get_text(), self.life.get_coordinate())
+        self.gameDisplay.blit(self.text.get_text(), self.text.get_coordinate())
 
     def _render_enemy(self):
         """ Renders the graphics for enemy objects. """
