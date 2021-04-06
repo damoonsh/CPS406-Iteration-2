@@ -61,14 +61,15 @@ class Player:
         self.x = (consts.MAP_WIDTH - consts.MARGIN) // 2
         self.y = consts.MAP_HEIGHT - consts.MARGIN
         self.claiming = False
+        self.incursion_starting_point = None
         self.incursion_conditions_met = False
         self.previous_move = None
-        self.incursion_starting_point = None
         self.life_force = 10
         self.claimed_area = 0
         # Claimed areas will be rendered via this list
         self.claimed_points = []
         self.current_incursion = []
+
 
     def get_coordinate(self):
         return (self.x, self.y)
