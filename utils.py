@@ -61,8 +61,9 @@ class Player:
         self.y = consts.MAP_HEIGHT - consts.MARGIN
         self.claiming = False
         self.previous_move = None
-
+        self.current_incursion = []
         self.life_force = 10
+    
         # Claimed areas will be rendered via this list
         self.claimed_points = []
 
@@ -135,6 +136,14 @@ class Player:
         if self.y != consts.MAP_HEIGHT - consts.MARGIN:
             self.y += consts.MOVE_DIM
 
+    def reposition(self):
+        # set player back to start of incursion
+        start = self.current_incursion[0]
+        self.current_incursion = []
+        self.x = start[0]
+        self.y = start[1]
+        self.claiming = False
+
 
 class Enemy:
     """ Manages the obstacles within the game """
@@ -146,6 +155,7 @@ class Enemy:
             self.prev_move_x = None
             self.prev_move_y = None
             self.prev_move = None
+            self.collision = None
 
         def _random_position(self):
             """ Generates a random position for qix """
@@ -233,6 +243,7 @@ class Enemy:
             self.x, self.y, self.orientation = self._random_position()
             self.change_move = False
             # print(self.x, self.y, self.orientation)
+            self.collision = None
 
         def get_coordinate(self) -> (int, int):
             return self.x, self.y
@@ -348,6 +359,38 @@ class Enemy:
         for quix in self.quixes:
             quix._next_move()
 
+    def _check_collisions(self, player):
+        # Returns True if collision with qix or sparx
+        incursion = player.current_incursion
+        player_coordinate = player.get_coordinate()
+
+        if len(incursion) > 0:
+            for qix in self.quixes:
+                x, y = qix.get_coordinate()
+                for point in incursion:
+                    if [x, y] == point:
+                        qix.collision = True
+                        return True
+                    else:
+                        qix.collision = False
+
+        for sparx in self.sparxes:
+            if sparx.get_coordinate() == player_coordinate:
+                sparx.collision = True
+                return True
+            else:
+                sparx.collision = False
+        
+        return False
+
+    def _respawn(self):
+        for qix in self.quixes:
+            qix.x, qix.y = qix._random_position()
+        
+        for sparx in self.sparxes:
+            sparx.x, sparx.y, sparx.orientation = sparx._random_position()
+            sparx._check_orientation()
+            sparx.change_move = True
 
 class Map:
     """ Main map that renders everything within here """
@@ -394,9 +437,17 @@ class Map:
         self.enemy.update()
         self._render_enemy()
 
+        if self.enemy._check_collisions(self.player):
+            self._handle_collision(self.player)
+        
         # Write the  text
         # Note: This should be rendered at the end to overwrite anything else!
         self.gameDisplay.blit(self.text.get_text(), self.text.get_coordinate())
+
+    def _handle_collision(self, player):
+        self._update_life(player)
+        self._draw_player()
+        self._render_enemy()
 
     def _render_enemy(self):
         """ Renders the graphics for enemy objects. """
@@ -447,6 +498,22 @@ class Map:
         # Right Vertical Line
         pygame.draw.line(self.gameDisplay, color, (self.width - margin,
                                                    margin), (self.width - margin, self.height - margin))
+
+    def _update_life(self, player):
+        for qix in self.enemy.quixes:
+            if qix.collision:
+                self.life.update('Qix')
+                qix.collision = False
+                player.reposition()
+                self.enemy._respawn()
+                return
+
+        for sparx in self.enemy.sparxes:
+            if sparx.collision:
+                self.life.update('Sparx')
+                sparx.collision = False
+                self.enemy._respawn()
+                return
 
 
 def run():
