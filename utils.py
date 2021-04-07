@@ -36,7 +36,8 @@ class Border:
     """ Connect points """
 
     def __init__(self):
-        self.points = []
+        self.points: [Point] = []
+        self.player_border: [Point] = border_points
         self._initiate()
 
     def _initiate(self):
@@ -47,7 +48,7 @@ class Border:
 
             for point2 in border_points:
                 if self._if_adjacent(point1, point2):
-                    point.adj_vertices.append((point2[0], point2[1]))
+                    point.adj_vertices.append(point2)
                     
             self.points.append(point)
 
@@ -61,10 +62,41 @@ class Border:
         """
         return (p1[0] == p2[0] or p1[1] == p2[1]) and not (p1[0] == p2[0] and p1[1] == p2[1])
 
+    def add_border_points(self, points):
+        for x, y in points:
+            new_point = Point(x, y)
+
+            for point in self.points:
+                px, py = point.get_coordinate()
+                if px == x or py == y:
+                    new_point.adj_vertices.append((px, py))
+            
+            self.points.append(new_point)
+        
+        for point in self.points:
+            print(f'{point.get_coordinate()} ', end='')
+        print()
+
     def on_border(self, x, y):
         """ Checks to see if a given point is on the border or not. """
-        pass
+        for point in self.points:
+            px, py = point.get_coordinate()
 
+            for vx, vy in point.adj_vertices:
+                if px == vx:
+                    if abs(py - vy) >= abs(py - y) and px == x:
+                        print(f'main_point: {(px, py)}, adj: {(vx, vy)}, point: {(x,y)}')
+                        return True
+                else:
+                    if abs(px - vx) >= abs(px - x) and py == y:
+                        print(f'main_point: {(px, py)}, adj: {(vx, vy)}, point: {(x,y)}')
+                        return True
+
+        return False
+
+    def move_on_border(self, x, y):
+        """ Given the points it determines if the move will go beyond the borders or not? """
+        pass
 
 class Text:
     """ Lives and claimed area text """
@@ -113,6 +145,11 @@ class Player:
 
     def get_coordinate(self):
         return (self.x, self.y)
+
+    def reset_points(self):
+        self.points = []
+        self._left_border = False
+        self.claiming = False
 
     def move(self, move: str):
         """ Controls the movement of the player """
@@ -498,8 +535,6 @@ class Map:
     def render(self):
         self.gameDisplay.fill(consts.BG_COLOR)
 
-        # Draw the borders
-        self._draw_borders()
 
         # Draw the player and the claimed areas
         self._draw_player()
@@ -512,12 +547,25 @@ class Map:
 
         # Write the  text
         # Note: This should be rendered at the end to overwrite anything else!
+        # Draw the borders
+        self._draw_borders()
+
         self.gameDisplay.blit(self.text.get_text(), self.text.get_coordinate())
 
     def _handle_collision(self, player):
         self._update_life(player)
         self._draw_player()
         self._render_enemy()
+
+    def move_player(self, move):
+        self.player.move(move)
+
+        x, y = self.player.get_coordinate()
+
+        if self.border.on_border(x, y) and self.player.claiming:
+            self.player.points.append((x, y))
+            self.border.add_border_points(self.player.points)
+            self.player.reset_points()
 
     def _render_enemy(self):
         """ Renders the graphics for enemy objects. """
@@ -597,16 +645,16 @@ def run():
 
                 # Moving Manually
                 if event.key == pygame.K_RIGHT:
-                    map.player.move("right")
+                    map.move_player("right")
 
                 if event.key == pygame.K_LEFT:
-                    map.player.move("left")
+                    map.move_player("left")
 
                 if event.key == pygame.K_UP:
-                    map.player.move("up")
+                    map.move_player("up")
 
                 if event.key == pygame.K_DOWN:
-                    map.player.move("down")
+                    map.move_player("down")
 
         # If the game is not paused then render the graphics
         if not PAUSE:
