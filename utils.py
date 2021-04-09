@@ -533,13 +533,13 @@ class Map:
         self.player.claiming = True
 
     def render(self):
+        # Fill the background color
         self.gameDisplay.fill(consts.BG_COLOR)
-
 
         # Draw the player and the claimed areas
         self._draw_player()
-
-        self.enemy.update()
+        
+        # Draw the enemy
         self._render_enemy()
 
         if self.enemy._check_collisions(self.player):
@@ -547,10 +547,11 @@ class Map:
 
         # Write the  text
         # Note: This should be rendered at the end to overwrite anything else!
+        self.gameDisplay.blit(self.text.get_text(), self.text.get_coordinate())
+
         # Draw the borders
         self._draw_borders()
-
-        self.gameDisplay.blit(self.text.get_text(), self.text.get_coordinate())
+            
 
     def _handle_collision(self, player):
         self._update_life(player)
@@ -568,7 +569,10 @@ class Map:
             self.player.reset_points()
 
     def _render_enemy(self):
-        """ Renders the graphics for enemy objects. """
+
+        # Update enemy before rendering its properties
+        self.enemy.update()
+
         for sparx in self.enemy.sparxes:
             self._draw_sparx(sparx)
 
@@ -586,20 +590,32 @@ class Map:
                             quix.get_mapping())
 
     def _draw_player(self):
-        """ Draws the player """
         pygame.draw.circle(self.gameDisplay,
                            consts.PLAYER_COLOR,
                            self.player.get_coordinate(),
                            consts.PLAYER_RADIUS)
 
     def _draw_borders(self, margin: int = consts.MARGIN, color: (int, int, int) = consts.BORDER_COLOR):
-        """ Draws the border for the QIX game """
         for point in self.border.points:
             start_point = point.get_coordinate()
             for adj_vertex in point.adj_vertices:
                 pygame.draw.line(self.gameDisplay, 
                                 color,
                                 start_point, adj_vertex)
+
+        if len(self.player.points) != 0: self._draw_temp_claim_lines()
+
+    
+    def _draw_temp_claim_lines(self):
+        for index in range(0, len(self.player.points) - 1):
+            pygame.draw.line(self.gameDisplay, 
+                                consts.BORDER_COLOR,
+                                self.player.points[index], self.player.points[index + 1])
+
+
+        pygame.draw.line(self.gameDisplay, 
+                                consts.BORDER_COLOR,
+                                self.player.points[-1], self.player.get_coordinate())
 
     def _update_life(self, player):
         for qix in self.enemy.quixes:
