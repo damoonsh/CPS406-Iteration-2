@@ -27,10 +27,11 @@ class Point:
         self.y = y
         self.adj_vertices = []
         self.direction_change = False
+        # Horizontal and Vertical adjacencies
+        self.h_adj, self.v_adj = [], []
 
-    def get_coordinate(self):
+    def get_coordinate(self) -> (int, int):
         return (self.x, self.y)
-
 
 class Border:
     """ Connect points """
@@ -42,57 +43,131 @@ class Border:
 
     def _initiate(self):
         """ Initiales the  border. """
-        for point1 in border_points:
-            
-            point = Point(point1[0], point1[1])
+        for x1, y1 in border_points:
+            point = Point(x1, y1)
 
-            for point2 in border_points:
-                if self._if_adjacent(point1, point2):
-                    point.adj_vertices.append(point2)
+            for x2, y2 in border_points:
+                if (x1, y1) != (x2, y2):
+                    if x2 == x1:
+                        point.v_adj.append((x2, y2))
+
+                    if y2 == y1:
+                        point.h_adj.append((x2, y2))
                     
             self.points.append(point)
 
-    def _if_adjacent(self, p1: Point, p2: Point):
-        """ Checks to see if two points (vertices) are adjacent
-            Meaning that they are either vertical or horizontal 
-            towards each other.
+    def add_border_points(self, points: [(int, int)]):
+        # First and last points in points array will be adjacent to old border points
+        self._update_old_adjacency(points)
 
-            Checks to see if either the y or x is the same?
-            Also, it should not be the same point.
-        """
-        return (p1[0] == p2[0] or p1[1] == p2[1]) and not (p1[0] == p2[0] and p1[1] == p2[1])
+        # Then the new adjacencies will be done with new points
+        for x1, y1 in points:
+            new_point = Point(x1, y1)
 
-    def add_border_points(self, points):
-        for x, y in points:
-            new_point = Point(x, y)
-
-            for point in self.points:
-                px, py = point.get_coordinate()
-                if px == x or py == y:
-                    new_point.adj_vertices.append((px, py))
+            for x2, y2 in points:
+                if (x1, y1) != (x2, y2):
+                    if x1 == x2:
+                        new_point.v_adj.append((x2, y2))
+                    if y1 == y2:
+                        new_point.h_adj.append((x2, y2))
             
             self.points.append(new_point)
+
+        self._update_adjacencies()
         
         for point in self.points:
             print(f'{point.get_coordinate()} ', end='')
         print()
 
-    def on_border(self, x, y):
+    def _update_old_adjacency(self, points: [(int, int)]):
+        (xi, yi), (xf, yf) = points[0], points[-1]
+
+        for point in self.points:
+            x, y = point.get_coordinate()
+
+            if x == xi: point.v_adj.append((xi, yi))
+            if x == xf: point.v_adj.append((xf, yf))
+            if y == yi: point.h_adj.append((xi, yi))
+            if y == yf: point.h_adj.append((xf, yf))
+
+    def _update_adjacencies(self):
+        for point in self.points:
+            print(f'p:{point.get_coordinate()}, h: {point.h_adj}, v:{point.v_adj}')
+            if point.get_coordinate() in border_points:
+                if len(point.h_adj) > 1:
+                    arr_x = self._return_one_coordinate(point.h_adj, point.x)
+                    arr_x.sort()
+
+                    print(f'Arr_X{arr_x}', end='')
+                    arr_x = arr_x[0:1]
+                    print(f'Arr_X{arr_x}')
+                    point.h_adj = self._retrieve_actual_coordinates(point.h_adj, arr_x, point.x)
+
+                if len(point.v_adj) > 1:
+                    arr_y = self._return_one_coordinate(point.v_adj, point.y, 'y')
+                    arr_y.sort()
+
+                    print(f'Arr_X{arr_y}', end='')
+                    arr_y = arr_y[0:1]
+                    print(f'Arr_Y{arr_y}')
+                    point.v_adj = self._retrieve_actual_coordinates(point.v_adj, arr_y, point.y, 'y')
+            else:
+                if len(point.h_adj) > 2:
+                    arr_x = self._return_one_coordinate(point.h_adj, point.x)
+                    arr_x.sort()
+                    arr_x = arr_x[:-1]
+                    point.h_adj = self._retrieve_actual_coordinates(point.h_adj, arr_x, point.x)
+
+                if len(point.v_adj) > 2:
+                    arr_y = self._return_one_coordinate(point.v_adj, point.y, 'y')
+                    arr_y.sort()
+                    arr_y = arr_y[:-1]
+                    point.v_adj = self._retrieve_actual_coordinates(point.v_adj, arr_y, point.y)
+
+            print(f'p:{point.get_coordinate()}, h: {point.h_adj}, v:{point.v_adj}')
+
+    def _retrieve_actual_coordinates(self, points, arr, ref, Type="x"):
+        ps = []
+        for x, y in points:
+            if Type == "x":
+                if abs(x - ref) in arr: ps.append((x,y))
+            else:
+                if abs(y - ref) in arr: ps.append((x,y))
+
+        return ps
+
+    def _return_one_coordinate(self, arr, ref, Type='x'):
+        if Type == 'x': return [abs(ref-x) for x, y in arr] 
+        return [abs(ref-y) for x, y in arr]
+
+    def on_border(self, x: int, y: int) -> bool:
         """ Checks to see if a given point is on the border or not. """
         for point in self.points:
             px, py = point.get_coordinate()
 
-            for vx, vy in point.adj_vertices:
-                if px == vx:
-                    if abs(py - vy) >= abs(py - y) and px == x:
-                        print(f'main_point: {(px, py)}, adj: {(vx, vy)}, point: {(x,y)}')
-                        return True
-                else:
-                    if abs(px - vx) >= abs(px - x) and py == y:
-                        print(f'main_point: {(px, py)}, adj: {(vx, vy)}, point: {(x,y)}')
-                        return True
+            for x2, y2 in point.h_adj:
+                if py == y:
+                    bx, sx = self._sort(px, x2)
+
+                    if x >= sx and x <= bx: return True
+
+            for x2, y2 in point.v_adj:
+                if px == x:
+                    by, sy = self._sort(py, y2)
+
+                    if y >= sy and y <= by: return True
+
 
         return False
+
+    def _sort(self, val1, val2):
+        if val1 < val2: return val2, val1
+
+        return val1, val2
+
+    def out_border(self):
+        """ Checks to see if a certain coordinate is out of current borders. """
+        pass
 
     def move_on_border(self, x, y):
         """ Given the points it determines if the move will go beyond the borders or not? """
@@ -563,6 +638,8 @@ class Map:
 
         x, y = self.player.get_coordinate()
 
+        # print(f'player: {self.player.get_coordinate()}, onBorder: {self.border.on_border(x, y)}, cl: {self.player.claiming}, l: {self.player._left_border}')
+
         if self.border.on_border(x, y) and self.player.claiming:
             self.player.points.append((x, y))
             self.border.add_border_points(self.player.points)
@@ -598,7 +675,13 @@ class Map:
     def _draw_borders(self, margin: int = consts.MARGIN, color: (int, int, int) = consts.BORDER_COLOR):
         for point in self.border.points:
             start_point = point.get_coordinate()
-            for adj_vertex in point.adj_vertices:
+
+            for adj_vertex in point.h_adj:
+                pygame.draw.line(self.gameDisplay, 
+                                color,
+                                start_point, adj_vertex)
+
+            for adj_vertex in point.v_adj:
                 pygame.draw.line(self.gameDisplay, 
                                 color,
                                 start_point, adj_vertex)
