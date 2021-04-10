@@ -57,38 +57,56 @@ class Border:
             self.points.append(point)
 
     def add_border_points(self, points: [(int, int)]):
-        # First and last points in points array will be adjacent to old border points
-        self._update_old_adjacency(points)
-
-        # Then the new adjacencies will be done with new points
-        for x1, y1 in points:
-            new_point = Point(x1, y1)
-
-            for x2, y2 in points:
-                if (x1, y1) != (x2, y2):
-                    if x1 == x2:
-                        new_point.v_adj.append((x2, y2))
-                    if y1 == y2:
-                        new_point.h_adj.append((x2, y2))
-            
-            self.points.append(new_point)
-
+        # Relate the new points
+        self._relate_new_points(points)
+        # Update the adjacencies
         self._update_adjacencies()
         
         for point in self.points:
             print(f'{point.get_coordinate()} ', end='')
         print()
 
-    def _update_old_adjacency(self, points: [(int, int)]):
-        (xi, yi), (xf, yf) = points[0], points[-1]
+    def _relate_new_points(self, points):
+        for i in range(len(points) - 2):
+            x1, y1 = points[i]
+            x2, y2 = points[i + 1]
+            x3, y3 = points[i + 2]
 
+            p2 = Point(x2, y2)
+
+            if i == 0:
+                p1 = Point(x1, y1)
+                p1.h_adj, p1.v_adj = self._relate_to_border(x1, y1)
+                if x2 == x1: p1.v_adj.append((x2, y2))
+                if y2 == y1: p1.h_adj.append((x2, y2))
+                self.points.append(p1)
+            elif i == len(points) - 3:
+                last_point = Point(x3, y3)
+                last_point.h_adj, last_point.v_adj = self._relate_to_border(x3, y3)
+                if x2 == x3: last_point.v_adj.append((x2, y2))
+                if y2 == y3: last_point.h_adj.append((x2, y2))
+                self.points.append(last_point)
+            
+            if x2 == x1: p2.v_adj.append((x1, y1))
+            if y2 == y1: p2.h_adj.append((x1, y1))
+            if x2 == x3: p2.v_adj.append((x3, y3))
+            if y2 == y3: p2.h_adj.append((x3, y3))
+            self.points.append(p2)
+
+
+    def _relate_to_border(self, x, y):
+        h, v = [], []
+        
         for point in self.points:
-            x, y = point.get_coordinate()
+            if point.x == x:
+                v.append(point.get_coordinate())
+                point.v_adj.append((x, y))
+            
+            if point.y == y:
+                h.append(point.get_coordinate())
+                point.h_adj.append((x, y))
 
-            if x == xi: point.v_adj.append((xi, yi))
-            if x == xf: point.v_adj.append((xf, yf))
-            if y == yi: point.h_adj.append((xi, yi))
-            if y == yf: point.h_adj.append((xf, yf))
+        return h,v 
 
     def _update_adjacencies(self):
         for point in self.points:
@@ -156,8 +174,6 @@ class Border:
                     by, sy = self._sort(py, y2)
 
                     if y >= sy and y <= by: return True
-
-
         return False
 
     def _sort(self, val1, val2):
@@ -198,7 +214,6 @@ class Text:
     def get_coordinate(self):
         return consts.INIT_COOR
 
-
 class Player:
     """
         Player Object that implements the logic of the
@@ -231,7 +246,8 @@ class Player:
         self._leave_border(move)
         
         if self.claiming and self._left_border:
-            if self._opposite_movement(move): self._coordinate_move(move)
+            if self._opposite_movement(move): 
+                self._coordinate_move(move)
         else:
             self._claimless_move(move)
 
@@ -259,8 +275,7 @@ class Player:
                 self._left_border = False
 
     def _coordinate_move(self, move):
-
-        if self.previous_move != move: 
+        if self.previous_move != move and self._left_border: 
             self.points.append((self.x, self.y))
             print(self.points)
 
@@ -309,7 +324,6 @@ class Player:
     def _move_down(self):
         if self.y != consts.MAP_DIM - consts.MARGIN:
             self.y += consts.MOVE_DIM
-
 
 class Enemy:
     """ Manages the obstacles within the game """
@@ -576,7 +590,6 @@ class Enemy:
             sparx._check_orientation()
             sparx.change_move = True
 
-
 class Collision:
     """ Handles collisions """
     def __init__(self, player: Player, quixes: [Enemy._Qix], sparxes: [Enemy._Sparx]):
@@ -641,6 +654,7 @@ class Map:
         # print(f'player: {self.player.get_coordinate()}, onBorder: {self.border.on_border(x, y)}, cl: {self.player.claiming}, l: {self.player._left_border}')
 
         if self.border.on_border(x, y) and self.player.claiming:
+            print(x,y)
             self.player.points.append((x, y))
             self.border.add_border_points(self.player.points)
             self.player.reset_points()
