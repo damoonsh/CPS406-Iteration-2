@@ -38,7 +38,7 @@ class Border:
 
     def __init__(self):
         self.points: [Point] = []
-        self.player_border: [Point] = border_points
+        self.player_border = border_points
         self._initiate()
 
     def _initiate(self):
@@ -67,32 +67,52 @@ class Border:
         print()
 
     def _relate_new_points(self, points):
-        for i in range(len(points) - 2):
-            x1, y1 = points[i]
-            x2, y2 = points[i + 1]
-            x3, y3 = points[i + 2]
+        if len(points) == 2:
+            x1, y1 = points[0]
+            x2, y2 = points[1]
 
+            p1 = Point(x1, y1)
             p2 = Point(x2, y2)
 
-            if i == 0:
-                p1 = Point(x1, y1)
-                p1.h_adj, p1.v_adj = self._relate_to_border(x1, y1)
-                if x2 == x1: p1.v_adj.append((x2, y2))
-                if y2 == y1: p1.h_adj.append((x2, y2))
-                self.points.append(p1)
-            elif i == len(points) - 3:
-                last_point = Point(x3, y3)
-                last_point.h_adj, last_point.v_adj = self._relate_to_border(x3, y3)
-                if x2 == x3: last_point.v_adj.append((x2, y2))
-                if y2 == y3: last_point.h_adj.append((x2, y2))
-                self.points.append(last_point)
-            
-            if x2 == x1: p2.v_adj.append((x1, y1))
-            if y2 == y1: p2.h_adj.append((x1, y1))
-            if x2 == x3: p2.v_adj.append((x3, y3))
-            if y2 == y3: p2.h_adj.append((x3, y3))
-            self.points.append(p2)
+            p1.h_adj, p1.v_adj = self._relate_to_border(x1, y1)
+            p2.h_adj, p2.v_adj = self._relate_to_border(x2, y2)
 
+            if x1 == x2:
+                p1.v_adj.append((x2, y2))
+                p2.v_adj.append((x1, y1))
+            else:
+                p1.h_adj.append((x2, y2))
+                p2.h_adj.append((x1, y1))
+
+            self.points.append(p1)
+            self.points.append(p2)
+        else:
+            for i in range(len(points) - 2):
+                x1, y1 = points[i]
+                x2, y2 = points[i + 1]
+                x3, y3 = points[i + 2]
+
+                p2 = Point(x2, y2)
+
+                if i == 0:
+                    p1 = Point(x1, y1)
+                    p1.h_adj, p1.v_adj = self._relate_to_border(x1, y1)
+                    if x2 == x1: p1.v_adj.append((x2, y2))
+                    if y2 == y1: p1.h_adj.append((x2, y2))
+                    self.points.append(p1)
+                
+                if i == len(points) - 3:
+                    last_point = Point(x3, y3)
+                    last_point.h_adj, last_point.v_adj = self._relate_to_border(x3, y3)
+                    if x2 == x3: last_point.v_adj.append((x2, y2))
+                    if y2 == y3: last_point.h_adj.append((x2, y2))
+                    self.points.append(last_point)
+                
+                if x2 == x1: p2.v_adj.append((x1, y1))
+                if y2 == y1: p2.h_adj.append((x1, y1))
+                if x2 == x3: p2.v_adj.append((x3, y3))
+                if y2 == y3: p2.h_adj.append((x3, y3))
+                self.points.append(p2)
 
     def _relate_to_border(self, x, y):
         h, v = [], []
@@ -115,21 +135,16 @@ class Border:
                 if len(point.h_adj) > 1:
                     arr_x = self._return_one_coordinate(point.h_adj, point.x)
                     arr_x.sort()
-
-                    print(f'Arr_X{arr_x}', end='')
                     arr_x = arr_x[0:1]
-                    print(f'Arr_X{arr_x}')
                     point.h_adj = self._retrieve_actual_coordinates(point.h_adj, arr_x, point.x)
 
                 if len(point.v_adj) > 1:
                     arr_y = self._return_one_coordinate(point.v_adj, point.y, 'y')
                     arr_y.sort()
-
-                    print(f'Arr_X{arr_y}', end='')
                     arr_y = arr_y[0:1]
-                    print(f'Arr_Y{arr_y}')
                     point.v_adj = self._retrieve_actual_coordinates(point.v_adj, arr_y, point.y, 'y')
             else:
+                # Won't work, should keep the, probably should not use abs()
                 if len(point.h_adj) > 2:
                     arr_x = self._return_one_coordinate(point.h_adj, point.x)
                     arr_x.sort()
@@ -277,7 +292,7 @@ class Player:
     def _coordinate_move(self, move):
         if self.previous_move != move and self._left_border: 
             self.points.append((self.x, self.y))
-            print(self.points)
+            # print(self.points)
 
         self.previous_move = move
 
@@ -654,8 +669,8 @@ class Map:
         # print(f'player: {self.player.get_coordinate()}, onBorder: {self.border.on_border(x, y)}, cl: {self.player.claiming}, l: {self.player._left_border}')
 
         if self.border.on_border(x, y) and self.player.claiming:
-            print(x,y)
             self.player.points.append((x, y))
+            print(self.player.points)
             self.border.add_border_points(self.player.points)
             self.player.reset_points()
 
