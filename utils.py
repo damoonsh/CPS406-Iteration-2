@@ -94,6 +94,7 @@ class Border:
 
                 p2 = Point(x2, y2)
 
+                # Adding the first point
                 if i == 0:
                     p1 = Point(x1, y1)
                     p1.h_adj, p1.v_adj = self._relate_to_border(x1, y1)
@@ -101,6 +102,13 @@ class Border:
                     if y2 == y1: p1.h_adj.append((x2, y2))
                     self.points.append(p1)
                 
+                if x2 == x1: p2.v_adj.append((x1, y1))
+                if y2 == y1: p2.h_adj.append((x1, y1))
+                if x2 == x3: p2.v_adj.append((x3, y3))
+                if y2 == y3: p2.h_adj.append((x3, y3))
+                self.points.append(p2)
+
+                # Adding the last point
                 if i == len(points) - 3:
                     last_point = Point(x3, y3)
                     last_point.h_adj, last_point.v_adj = self._relate_to_border(x3, y3)
@@ -108,11 +116,6 @@ class Border:
                     if y2 == y3: last_point.h_adj.append((x2, y2))
                     self.points.append(last_point)
                 
-                if x2 == x1: p2.v_adj.append((x1, y1))
-                if y2 == y1: p2.h_adj.append((x1, y1))
-                if x2 == x3: p2.v_adj.append((x3, y3))
-                if y2 == y3: p2.h_adj.append((x3, y3))
-                self.points.append(p2)
 
     def _relate_to_border(self, x, y):
         h, v = [], []
@@ -128,50 +131,65 @@ class Border:
 
         return h,v 
 
+    # This function is problematic
     def _update_adjacencies(self):
+        """
+            The initial border points can have one horizontal and 
+            one vertical adjacent vertices.
+
+            However, the rest of the border points that are added
+            afterwards can have two of each adjacent vertex type.
+        """
         for point in self.points:
             print(f'p:{point.get_coordinate()}, h: {point.h_adj}, v:{point.v_adj}')
             if point.get_coordinate() in border_points:
+                # Initial Border point update
+                # The last element (newly added point should be the onlt adjacency)
                 if len(point.h_adj) > 1:
-                    arr_x = self._return_one_coordinate(point.h_adj, point.x)
-                    arr_x.sort()
-                    arr_x = arr_x[0:1]
-                    point.h_adj = self._retrieve_actual_coordinates(point.h_adj, arr_x, point.x)
+                    closest = point.h_adj[0]
+                    for x, y in point.h_adj:
+                        if abs(point.x - x) < abs(point.x - closest[0]):
+                            closest = (x, y) 
+                    point.h_adj = [closest]
 
                 if len(point.v_adj) > 1:
-                    arr_y = self._return_one_coordinate(point.v_adj, point.y, 'y')
-                    arr_y.sort()
-                    arr_y = arr_y[0:1]
-                    point.v_adj = self._retrieve_actual_coordinates(point.v_adj, arr_y, point.y, 'y')
+                    closest = point.v_adj[0]
+                    for x, y in point.v_adj:
+                        if abs(point.y - y) < abs(point.y - closest[1]):
+                            closest = (x, y) 
+                    point.v_adj = [closest]
             else:
-                # Won't work, should keep the, probably should not use abs()
-                if len(point.h_adj) > 2:
-                    arr_x = self._return_one_coordinate(point.h_adj, point.x)
-                    arr_x.sort()
-                    arr_x = arr_x[:-1]
-                    point.h_adj = self._retrieve_actual_coordinates(point.h_adj, arr_x, point.x)
+                # IF there are two new points added then, they will replace the previous list
+                if len(point.h_adj) == 4:
+                    point.h_adj = point.h_adj[-2:]
+                elif len(point.h_adj) == 3:
+                    last = point.h_adj[-1]
+                    p1 = point.h_adj[0]
+                    p2 = point.h_adj[1]
 
-                if len(point.v_adj) > 2:
-                    arr_y = self._return_one_coordinate(point.v_adj, point.y, 'y')
-                    arr_y.sort()
-                    arr_y = arr_y[:-1]
-                    point.v_adj = self._retrieve_actual_coordinates(point.v_adj, arr_y, point.y)
+                    if p1 < last and last < p2:
+                        point.h_adj.remove(p1)
+                    else:
+                        point.h_adj.remove(p2)
+                   
+                if len(point.v_adj) == 4:
+                    point.v_adj = point.v_adj[-2:]
+                elif len(point.v_adj) == 3:
+                    last = point.v_adj[-1]
+                    p1 = point.v_adj[0]
+                    p2 = point.v_adj[1]
+
+                    if p1 < last and last < p2:
+                        point.v_adj.remove(p1)
+                    else:
+                        point.v_adj.remove(p2)
+                
 
             print(f'p:{point.get_coordinate()}, h: {point.h_adj}, v:{point.v_adj}')
 
-    def _retrieve_actual_coordinates(self, points, arr, ref, Type="x"):
-        ps = []
-        for x, y in points:
-            if Type == "x":
-                if abs(x - ref) in arr: ps.append((x,y))
-            else:
-                if abs(y - ref) in arr: ps.append((x,y))
-
-        return ps
-
-    def _return_one_coordinate(self, arr, ref, Type='x'):
-        if Type == 'x': return [abs(ref-x) for x, y in arr] 
-        return [abs(ref-y) for x, y in arr]
+    def _update_adjacencies_initial_border(self):
+        
+        pass
 
     def on_border(self, x: int, y: int) -> bool:
         """ Checks to see if a given point is on the border or not. """
