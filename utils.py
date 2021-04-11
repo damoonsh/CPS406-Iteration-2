@@ -33,12 +33,16 @@ class Point:
     def get_coordinate(self) -> (int, int):
         return (self.x, self.y)
 
+
 class Border:
     """ Connect points """
 
     def __init__(self):
         self.points: [Point] = []
         self.player_border = border_points
+        # Each element will have 2 coordinates indicating a claimed area
+        self.claim_points = []
+
         self._initiate()
 
     def _initiate(self):
@@ -53,7 +57,7 @@ class Border:
 
                     if y2 == y1:
                         point.h_adj.append((x2, y2))
-                    
+
             self.points.append(point)
 
     def add_border_points(self, points: [(int, int)]):
@@ -61,10 +65,12 @@ class Border:
         self._relate_new_points(points)
         # Update the adjacencies
         self._update_adjacencies()
-        
+
         for point in self.points:
             print(f'{point.get_coordinate()} ', end='')
         print()
+
+        print(f'claimed: {self.claim_points}')
 
     def _relate_new_points(self, points):
         if len(points) == 2:
@@ -80,9 +86,23 @@ class Border:
             if x1 == x2:
                 p1.v_adj.append((x2, y2))
                 p2.v_adj.append((x1, y1))
+
+                left, top = min(x1, x2), min(y1, y2)
+
+                self.claim_points.append((left, 
+                                        top, 
+                                        abs(400 - left), 
+                                        abs(400 - top)))
             else:
                 p1.h_adj.append((x2, y2))
                 p2.h_adj.append((x1, y1))
+                
+                left, top = min(x1, x2), min(y1, y2)
+
+                self.claim_points.append((left, 
+                                        top, 
+                                        abs(400 - left), 
+                                        abs(400 - top)))
 
             self.points.append(p1)
             self.points.append(p2)
@@ -92,44 +112,68 @@ class Border:
                 x2, y2 = points[i + 1]
                 x3, y3 = points[i + 2]
 
+                left, top = min(x1, x2, x3), min(y1, y2, y3)
+
+                if i != len(points) - 3:
+                    self.claim_points.append((left, 
+                                        top, 
+                                        abs(400 - left),
+                                        abs(400 - top)
+                                        ))
+
                 p2 = Point(x2, y2)
 
                 # Adding the first point
                 if i == 0:
                     p1 = Point(x1, y1)
                     p1.h_adj, p1.v_adj = self._relate_to_border(x1, y1)
-                    if x2 == x1: p1.v_adj.append((x2, y2))
-                    if y2 == y1: p1.h_adj.append((x2, y2))
+                    if x2 == x1:
+                        p1.v_adj.append((x2, y2))
+                    if y2 == y1:
+                        p1.h_adj.append((x2, y2))
                     self.points.append(p1)
-                
-                if x2 == x1: p2.v_adj.append((x1, y1))
-                if y2 == y1: p2.h_adj.append((x1, y1))
-                if x2 == x3: p2.v_adj.append((x3, y3))
-                if y2 == y3: p2.h_adj.append((x3, y3))
-                self.points.append(p2)
 
                 # Adding the last point
                 if i == len(points) - 3:
                     last_point = Point(x3, y3)
-                    last_point.h_adj, last_point.v_adj = self._relate_to_border(x3, y3)
-                    if x2 == x3: last_point.v_adj.append((x2, y2))
-                    if y2 == y3: last_point.h_adj.append((x2, y2))
+                    last_point.h_adj, last_point.v_adj = self._relate_to_border(
+                        x3, y3)
+                    if x2 == x3:
+                        last_point.v_adj.append((x2, y2))
+                    if y2 == y3:
+                        last_point.h_adj.append((x2, y2))
                     self.points.append(last_point)
-                
+
+                # Dealing with the middle point
+                if x2 == x1:
+                    p2.v_adj.append((x1, y1))
+                if y2 == y1:
+                    p2.h_adj.append((x1, y1))
+                if x2 == x3:
+                    p2.v_adj.append((x3, y3))
+                if y2 == y3:
+                    p2.h_adj.append((x3, y3))
+                self.points.append(p2)
 
     def _relate_to_border(self, x, y):
+        """ Relates the first and last new points to 
+        the old border points """
         h, v = [], []
-        
+
         for point in self.points:
             if point.x == x:
                 v.append(point.get_coordinate())
                 point.v_adj.append((x, y))
-            
+                point.v_adj.sort()
+
             if point.y == y:
                 h.append(point.get_coordinate())
                 point.h_adj.append((x, y))
-
-        return h,v 
+                point.h_adj.sort()
+    
+        h.sort()
+        v.sort()
+        return h, v
 
     # This function is problematic
     def _update_adjacencies(self):
@@ -141,7 +185,7 @@ class Border:
             afterwards can have two of each adjacent vertex type.
         """
         for point in self.points:
-            print(f'p:{point.get_coordinate()}, h: {point.h_adj}, v:{point.v_adj}')
+            # print(f'p:{point.get_coordinate()}, h: {point.h_adj}, v:{point.v_adj}')
             if point.get_coordinate() in border_points:
                 # Initial Border point update
                 # The last element (newly added point should be the onlt adjacency)
@@ -149,20 +193,17 @@ class Border:
                     closest = point.h_adj[0]
                     for x, y in point.h_adj:
                         if abs(point.x - x) < abs(point.x - closest[0]):
-                            closest = (x, y) 
+                            closest = (x, y)
                     point.h_adj = [closest]
 
                 if len(point.v_adj) > 1:
                     closest = point.v_adj[0]
                     for x, y in point.v_adj:
                         if abs(point.y - y) < abs(point.y - closest[1]):
-                            closest = (x, y) 
+                            closest = (x, y)
                     point.v_adj = [closest]
             else:
-                # IF there are two new points added then, they will replace the previous list
-                if len(point.h_adj) == 4:
-                    point.h_adj = point.h_adj[-2:]
-                elif len(point.h_adj) == 3:
+                if len(point.h_adj) > 2:
                     last = point.h_adj[-1]
                     p1 = point.h_adj[0]
                     p2 = point.h_adj[1]
@@ -171,10 +212,8 @@ class Border:
                         point.h_adj.remove(p1)
                     else:
                         point.h_adj.remove(p2)
-                   
-                if len(point.v_adj) == 4:
-                    point.v_adj = point.v_adj[-2:]
-                elif len(point.v_adj) == 3:
+
+                if len(point.v_adj) > 2:
                     last = point.v_adj[-1]
                     p1 = point.v_adj[0]
                     p2 = point.v_adj[1]
@@ -183,13 +222,8 @@ class Border:
                         point.v_adj.remove(p1)
                     else:
                         point.v_adj.remove(p2)
-                
 
             print(f'p:{point.get_coordinate()}, h: {point.h_adj}, v:{point.v_adj}')
-
-    def _update_adjacencies_initial_border(self):
-        
-        pass
 
     def on_border(self, x: int, y: int) -> bool:
         """ Checks to see if a given point is on the border or not. """
@@ -200,27 +234,27 @@ class Border:
                 if py == y:
                     bx, sx = self._sort(px, x2)
 
-                    if x >= sx and x <= bx: return True
+                    if x >= sx and x <= bx:
+                        return True
 
             for x2, y2 in point.v_adj:
                 if px == x:
                     by, sy = self._sort(py, y2)
 
-                    if y >= sy and y <= by: return True
+                    if y >= sy and y <= by:
+                        return True
         return False
 
     def _sort(self, val1, val2):
-        if val1 < val2: return val2, val1
+        if val1 < val2:
+            return val2, val1
 
         return val1, val2
 
-    def out_border(self):
-        """ Checks to see if a certain coordinate is out of current borders. """
-        pass
-
-    def move_on_border(self, x, y):
+    def out_border(self, x, y):
         """ Given the points it determines if the move will go beyond the borders or not? """
         pass
+
 
 class Text:
     """ Lives and claimed area text """
@@ -240,18 +274,20 @@ class Text:
 
     def get_text(self):
         space = " " * (consts.MARGIN // 2)
-        
+
         return self.font.render(f'{space}Life: {self.life}{space}Claimed Percentage: {self.claimed_percentage}%', True,
                                 consts.FONT_COLOR)
 
     def get_coordinate(self):
         return consts.INIT_COOR
 
+
 class Player:
     """
         Player Object that implements the logic of the
         player moving in the map.
     """
+
     def __init__(self):
         self.points = []
         self.x = (consts.MAP_DIM - consts.MARGIN) // 2
@@ -277,9 +313,9 @@ class Player:
     def move(self, move: str):
         """ Controls the movement of the player """
         self._leave_border(move)
-        
+
         if self.claiming and self._left_border:
-            if self._opposite_movement(move): 
+            if self._opposite_movement(move):
                 self._coordinate_move(move)
         else:
             self._claimless_move(move)
@@ -308,7 +344,7 @@ class Player:
                 self._left_border = False
 
     def _coordinate_move(self, move):
-        if self.previous_move != move and self._left_border: 
+        if self.previous_move != move and self._left_border:
             self.points.append((self.x, self.y))
             # print(self.points)
 
@@ -357,6 +393,7 @@ class Player:
     def _move_down(self):
         if self.y != consts.MAP_DIM - consts.MARGIN:
             self.y += consts.MOVE_DIM
+
 
 class Enemy:
     """ Manages the obstacles within the game """
@@ -581,7 +618,8 @@ class Enemy:
         self._fetch_next_moves()
 
         # After some time add a Sparx
-        if 9.6 < time.time() - self.t1 < 10: self._add_sparx()
+        if 9.6 < time.time() - self.t1 < 10:
+            self._add_sparx()
 
     def _fetch_next_moves(self):
         for sparx in self.sparxes:
@@ -623,12 +661,15 @@ class Enemy:
             sparx._check_orientation()
             sparx.change_move = True
 
+
 class Collision:
     """ Handles collisions """
+
     def __init__(self, player: Player, quixes: [Enemy._Qix], sparxes: [Enemy._Sparx]):
         self.player = player
         self.quixes = quixes
         self.sparxes = sparxes
+
 
 class Map:
     """ Main map that renders graphics """
@@ -638,10 +679,10 @@ class Map:
         self.dim = width
 
         pygame.init()  # Initialize the pygame module
-        self.text = Text() # Text of the game
-        self.border = Border() # The dynamic Bordering
-        self.player = Player() # The player Object
-        self.enemy = Enemy() # The enmy object
+        self.text = Text()  # Text of the game
+        self.border = Border()  # The dynamic Bordering
+        self.player = Player()  # The player Object
+        self.enemy = Enemy()  # The enmy object
 
         # Set the properties of the game Display
         self.gameDisplay = pygame.display.set_mode((self.dim, self.dim))
@@ -657,9 +698,12 @@ class Map:
         # Fill the background color
         self.gameDisplay.fill(consts.BG_COLOR)
 
+        # Drawing the claimed areas
+        self._draw_claimed_areas()
+
         # Draw the player and the claimed areas
         self._draw_player()
-        
+
         # Draw the enemy
         self._render_enemy()
 
@@ -669,10 +713,8 @@ class Map:
         # Write the  text
         # Note: This should be rendered at the end to overwrite anything else!
         self.gameDisplay.blit(self.text.get_text(), self.text.get_coordinate())
-
         # Draw the borders
         self._draw_borders()
-            
 
     def _handle_collision(self, player):
         self._update_life(player)
@@ -691,6 +733,13 @@ class Map:
             print(self.player.points)
             self.border.add_border_points(self.player.points)
             self.player.reset_points()
+
+    def _draw_claimed_areas(self):
+        for coordinates in self.border.claim_points:
+            pygame.draw.rect(surface=self.gameDisplay, 
+                            color=consts.INCURSION_GOOD_COLOR,
+                            rect=coordinates
+                            )
 
     def _render_enemy(self):
 
@@ -724,28 +773,27 @@ class Map:
             start_point = point.get_coordinate()
 
             for adj_vertex in point.h_adj:
-                pygame.draw.line(self.gameDisplay, 
-                                color,
-                                start_point, adj_vertex)
+                pygame.draw.line(self.gameDisplay,
+                                 color,
+                                 start_point, adj_vertex)
 
             for adj_vertex in point.v_adj:
-                pygame.draw.line(self.gameDisplay, 
-                                color,
-                                start_point, adj_vertex)
+                pygame.draw.line(self.gameDisplay,
+                                 color,
+                                 start_point, adj_vertex)
 
-        if len(self.player.points) != 0: self._draw_temp_claim_lines()
+        if len(self.player.points) != 0:
+            self._draw_temp_claim_lines()
 
-    
     def _draw_temp_claim_lines(self):
         for index in range(0, len(self.player.points) - 1):
-            pygame.draw.line(self.gameDisplay, 
-                                consts.BORDER_COLOR,
-                                self.player.points[index], self.player.points[index + 1])
+            pygame.draw.line(self.gameDisplay,
+                             consts.BORDER_COLOR,
+                             self.player.points[index], self.player.points[index + 1])
 
-
-        pygame.draw.line(self.gameDisplay, 
-                                consts.BORDER_COLOR,
-                                self.player.points[-1], self.player.get_coordinate())
+        pygame.draw.line(self.gameDisplay,
+                         consts.BORDER_COLOR,
+                         self.player.points[-1], self.player.get_coordinate())
 
     def _update_life(self, player):
         for qix in self.enemy.quixes:
