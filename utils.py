@@ -114,11 +114,10 @@ class Border:
 
                 left, top = min(x1, x2, x3), min(y1, y2, y3)
 
-                if i != len(points) - 3:
-                    self.claim_points.append((left, 
+                self.claim_points.append((left, 
                                         top, 
-                                        abs(400 - left),
-                                        abs(400 - top)
+                                        abs(max(x1, x2, x3) - left),
+                                        abs(max(y1, y2, y3) - top)
                                         ))
 
                 p2 = Point(x2, y2)
@@ -223,7 +222,7 @@ class Border:
                     else:
                         point.v_adj.remove(p2)
 
-            print(f'p:{point.get_coordinate()}, h: {point.h_adj}, v:{point.v_adj}')
+            # print(f'p:{point.get_coordinate()}, h: {point.h_adj}, v:{point.v_adj}')
 
     def on_border(self, x: int, y: int) -> bool:
         """ Checks to see if a given point is on the border or not. """
@@ -255,6 +254,14 @@ class Border:
         """ Given the points it determines if the move will go beyond the borders or not? """
         pass
 
+    def claim_percentage(self):
+        p = 0
+        for _, _, w, h in self.claim_points:
+            p += (h * w) 
+
+        p = int(p / 1600)
+
+        return p
 
 class Text:
     """ Lives and claimed area text """
@@ -263,6 +270,7 @@ class Text:
         pygame.font.init()
         self.life = initial_life
         self.font = pygame.font.SysFont('Comic Sans MS', consts.FONT_SIZE)
+        self.lose_font = pygame.font.SysFont('Comic Sans MS', 50)
 
         self.claimed_percentage = 0
 
@@ -275,12 +283,18 @@ class Text:
     def get_text(self):
         space = " " * (consts.MARGIN // 2)
 
-        return self.font.render(f'{space}Life: {self.life}{space}Claimed Percentage: {self.claimed_percentage}%', True,
+        return self.font.render(f'{space}Life: {self.life}{space}Claimed Percentage: {self.claimed_percentage}%', 
+                                True,
                                 consts.FONT_COLOR)
+
+    def get_losing_text(self):
+        return self.lose_font.render(f'You Lost!', True, (255, 255, 255))
+
+    def get_losing_coordinate(self):
+        return (150, 150)
 
     def get_coordinate(self):
         return consts.INIT_COOR
-
 
 class Player:
     """
@@ -345,8 +359,9 @@ class Player:
 
     def _coordinate_move(self, move):
         if self.previous_move != move and self._left_border:
+            print(f'lb: {self._left_border}, m: {move}, orien: {self.orientation}')
             self.points.append((self.x, self.y))
-            # print(self.points)
+            print(self.points)
 
         self.previous_move = move
 
@@ -628,29 +643,44 @@ class Enemy:
         for quix in self.quixes:
             quix._next_move()
 
-    def _check_collisions(self, player):
-        # Returns True if collision with qix or sparx
-        incursion = player.current_incursion
-        player_coordinate = player.get_coordinate()
-
-        if len(incursion) > 0:
-            for qix in self.quixes:
-                x, y = qix.get_coordinate()
-                for point in incursion:
-                    if [x, y] == point:
-                        qix.collision = True
-                        return True
-                    else:
-                        qix.collision = False
+    def _check_collisions(self, player: Player):
+        points = player.points + [player.get_coordinate()]
+        px, py = player.get_coordinate()
 
         for sparx in self.sparxes:
-            if sparx.get_coordinate() == player_coordinate:
-                sparx.collision = True
-                return True
-            else:
-                sparx.collision = False
+            sx, sy = sparx.get_coordinate()
+            
+            if px == sx and sy == py:
+                return True, 'Sparx'
 
-        return False
+        if len(points) == 1: return False, None
+
+        for qix in self.quixes:
+            x, y = qix.get_coordinate()
+            print(f'Qix: ({x},{y}), points: {points}')
+            for i in range(1, len(points)):
+                x1, y1 = points[i - 1]
+                x2, y2 = points[i]
+
+                if x == x1 or x == x2:
+                    yb, ys = self._sort(y1, y2)
+
+                    if y >= ys and y <= yb:
+                        return True, 'Qix'
+
+                if y == y1 or y == y2:
+                    xb, xs = self._sort(x1, x2)
+
+                    if x >= xs and y <= xb:
+                        return True, 'Qix'
+
+        return False, None
+
+    def _sort(self, val1, val2):
+        if val1 < val2:
+            return val2, val1
+
+        return val1, val2
 
     def _respawn(self):
         for qix in self.quixes:
@@ -691,35 +721,45 @@ class Map:
         # Setting the caption
         pygame.display.set_caption('QIX')
 
+        self.LOST = False
+        self.rep = 0
+
     def start_claiming(self):
         self.player.claiming = True
 
     def render(self):
-        # Fill the background color
-        self.gameDisplay.fill(consts.BG_COLOR)
+        
+        if self.LOST:
+            self.gameDisplay.fill((250, 0, 0))
+            self.gameDisplay.blit(self.text.get_losing_text(), (100, 100))
+            
+            self.rep += 1
+            if self.rep == 20: 
+                pygame.quit()
+                quit()
+        else:
+            # Fill the background color
+            self.gameDisplay.fill(consts.BG_COLOR)
 
-        # Drawing the claimed areas
-        self._draw_claimed_areas()
+            # Drawing the claimed areas
+            self._draw_claimed_areas()
 
-        # Draw the player and the claimed areas
-        self._draw_player()
+            # Draw the enemy
+            self._render_enemy()
 
-        # Draw the enemy
-        self._render_enemy()
+            # Draw the player and the claimed areas
+            self._draw_player()
 
-        if self.enemy._check_collisions(self.player):
-            self._handle_collision(self.player)
+            # Write the text
+            # Note: This should be rendered at the end to overwrite anything else!
+            self._render_text()
+            # Draw the borders
+            self._draw_borders()
 
-        # Write the  text
-        # Note: This should be rendered at the end to overwrite anything else!
+    def _render_text(self):
+        self.text.claimed_percentage = self.border.claim_percentage()
+        self.text.life = self.player.life_force
         self.gameDisplay.blit(self.text.get_text(), self.text.get_coordinate())
-        # Draw the borders
-        self._draw_borders()
-
-    def _handle_collision(self, player):
-        self._update_life(player)
-        self._draw_player()
-        self._render_enemy()
 
     def move_player(self, move):
         self.player.move(move)
@@ -730,7 +770,6 @@ class Map:
 
         if self.border.on_border(x, y) and self.player.claiming:
             self.player.points.append((x, y))
-            print(self.player.points)
             self.border.add_border_points(self.player.points)
             self.player.reset_points()
 
@@ -742,15 +781,32 @@ class Map:
                             )
 
     def _render_enemy(self):
-
         # Update enemy before rendering its properties
         self.enemy.update()
+        
+        collision, Type = self.enemy._check_collisions(self.player)
+
+        if collision:
+            print(Type)
+            # Decrement life
+            if Type == 'Qix': 
+                self.player.x, self.player.y = self.player.points[0]
+                self.player.reset_points()
+                self.player.life_force -= 2
+            if Type == 'Sparx': 
+                self.player.life_force -= 1
+
+            self.LOST = not self.player.life_force > 9
+
+            # Relocate
+            self.enemy._respawn()
 
         for sparx in self.enemy.sparxes:
             self._draw_sparx(sparx)
 
         for quix in self.enemy.quixes:
             self._draw_qix(quix)
+
 
     def _draw_sparx(self, sparx: Enemy._Sparx, color=consts.SPARX_COLOR):
         pygame.draw.polygon(self.gameDisplay,
@@ -794,22 +850,8 @@ class Map:
         pygame.draw.line(self.gameDisplay,
                          consts.BORDER_COLOR,
                          self.player.points[-1], self.player.get_coordinate())
-
-    def _update_life(self, player):
-        for qix in self.enemy.quixes:
-            if qix.collision:
-                self.text.update('Qix')
-                qix.collision = False
-                player.reposition()
-                self.enemy._respawn()
-                return
-
-        for sparx in self.enemy.sparxes:
-            if sparx.collision:
-                self.text.update('Sparx')
-                sparx.collision = False
-                self.enemy._respawn()
-                return
+       
+                
 
 
 def run():
