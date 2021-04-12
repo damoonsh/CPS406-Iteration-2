@@ -308,7 +308,7 @@ class Player:
         self.y = consts.MAP_DIM - consts.MARGIN
         self.claiming = False
         self.previous_move = None
-        self.life_force = 10
+        self.life_force = 5
 
         self._left_border = False
 
@@ -796,7 +796,7 @@ class Map:
             if Type == 'Sparx': 
                 self.player.life_force -= 1
 
-            self.LOST = not self.player.life_force > 9
+            self.LOST = not self.player.life_force > 0
 
             # Relocate
             self.enemy._respawn()
